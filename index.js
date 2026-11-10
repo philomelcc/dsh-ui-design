@@ -10,6 +10,7 @@ import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineTool } from "./lib/tool.js";
+import { loadEmbeddingConfig, rerankByVectors } from "./lib/embedding.js";
 import {
   listDesigns,
   listTags,
@@ -292,13 +293,31 @@ export function apply(ctx) {
 
       if (action === "search" || action === "list") {
         const isSearch = action === "search";
+        const offset = Number(args.offset || 0);
         const limit = Number(args.limit) > 0 ? Number(args.limit) : isSearch ? 8 : 30;
+        // search 多取候选给语义重排留空间；list 保持分页语义
+        const fetchLimit = isSearch ? Math.min(limit * 3, 60) : limit;
         const result = listDesigns({
           q: String(args.query || ""),
           tag: String(args.tag || ""),
-          offset: Number(args.offset || 0),
-          limit,
+          offset: isSearch ? 0 : offset,
+          limit: fetchLimit,
         });
+        let rerankedByVectors = false;
+        if (isSearch && result.items.length > 1) {
+          const config = loadEmbeddingConfig();
+          if (config) {
+            try {
+              const reranked = await rerankByVectors(config, result.items, String(args.query || ""));
+              result.items = reranked.slice(0, limit);
+              rerankedByVectors = true;
+            } catch (_error) {
+              result.items = result.items.slice(0, limit);
+            }
+          } else {
+            result.items = result.items.slice(0, limit);
+          }
+        }
         const all = listDesigns({ limit: 0 });
         if (result.total === 0) {
           return {
@@ -314,6 +333,9 @@ export function apply(ctx) {
         ];
         if (result.mode === "fuzzy") {
           lines.push("（没有词面直接命中，下面是字面相近的候选，可能不相关——没有合适的就自己设计。）");
+        }
+        if (rerankedByVectors) {
+          lines.push("（已用本地 embedding 做语义重排。）");
         }
         for (const d of result.items) {
           const bits = [

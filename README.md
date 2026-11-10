@@ -43,6 +43,29 @@ node site/serve.mjs # 直接起，默认 http://127.0.0.1:3090
 
 展示版功能：卡片网格（分页）、tag 筛选、标签输入搜索、弹窗 demo、复制提示词/JSON、`配色方案` 直接作为主题切换。
 
+## 检索
+
+**默认零依赖**：关键词 + 同义词表（`data/synonyms.json`）+ 中文 2 字滑窗拆词 + 字面兜底（bigram）。
+装完就能搜，不需要任何外部服务。「对话框」能召回「弹窗」，「列表转圈」能召回加载类。
+
+**可选：语义重排**。如果你有 OpenAI 兼容的 embedding 端点（本地 LM Studio / ollama / 自建都行），
+在 `~/.dsh/storages/ui-design/config.json` 里配一下，`search` 会对关键词候选做一次向量重排：
+
+```json
+{
+  "embedding": {
+    "enabled": true,
+    "endpoint": "http://127.0.0.1:1234/v1",
+    "model": "text-embedding-nomic-embed-text-v1.5"
+  }
+}
+```
+
+- **没配就完全跳过**，行为和默认一致；
+- 向量缓存写在 `~/.dsh/storages/ui-design/vectors.json`，设计内容变了自动重算那一条；
+- 只对候选做重排（不是全库召回），一次查询只多一次 embedding 请求；
+- 以后接本地 WASM embedding 时复用同一份 `embedTexts` / 缓存格式，配置项不变。
+
 ## 数据
 
 - 包内 `data/`：初始设计库（`index.json` 元数据 + `designs/<id>.json` 单条完整内容）。
