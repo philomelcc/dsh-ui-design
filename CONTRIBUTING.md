@@ -1,0 +1,78 @@
+# 贡献指南
+
+欢迎加设计、修 demo、改提示词。这个库的价值在于「设计质量 + 提示词能直接照做」，所以比代码更看重数据本身。
+
+## 加一项设计（两种方式）
+
+**方式 A：在 dsh 里加（推荐）**
+
+1. 打开「UI设计」页，点「+ 新建设计」；或在任意 dsh 会话里说「新建一个设计：……」。
+2. 填名称、tag、一句话说明，再按 [`设计规范.md`](./设计规范.md) 写 `demoHtml` 和 `prompt`。
+3. 导出到仓库：`npm run export`（把 `~/.dsh/storages/ui-design/` 同步回 `data/`）。
+
+**方式 B：直接编辑 `data/`**
+
+1. 在 `data/designs/` 新建 `<id>.json`（id 用一个短 slug，如 `export-menu`）。
+2. 在 `data/index.json` 的 `designs` 数组里加一条元数据（id 必须一致）。
+3. 跑 `npm run validate` 确认格式。
+
+两种方式都要过校验。**不要只改 `index.json` 不加文件。**
+
+## 数据格式
+
+`data/designs/<id>.json`：
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `name` | ✅ | 设计名，≤60 字，全库唯一 |
+| `tags` | 建议 | ≤8 个，参考现有 tag（导航/弹窗/加载/表单/交互…） |
+| `summary` | 建议 | 一句话说明，≤300 字 |
+| `usage` | 建议 | 适用场景，≤120 字（1–2 句） |
+| `caution` | 建议 | 不适用场景，≤120 字 |
+| `hint` | 可选 | 操作提示，≤80 字；页面渲染在演示区外，**demo 里不要写提示行** |
+| `prompt` | ✅ | 实现提示词，见下方要求 |
+| `demoHtml` | ✅ | 完整 HTML（`<!doctype html>` 到 `</html>`），≤400KB |
+
+`data/index.json` 的元数据只需 `id / name / tags / summary / usage / caution / hint / createdAt / updatedAt`，不含 `prompt` 和 `demoHtml`。
+
+## demo 要求（硬性）
+
+- 完整 HTML 文档，自带样式和脚本，不访问网络 / localStorage / 父页面。
+- 配色只用 `--ui-*` 变量（父页面按主题注入），**不要写死深色**；品牌色按钮文字用 `var(--ui-bg)`。
+- 自动播放包在 `if (!window.__uiInteractive)` 里：卡片预览会播，放大弹窗不播。
+- 点击类演示用 `window.__uiDemoCursor()`（移过去 → 按下 → 触发真实 click）；被点元素要加 `.pressing` 之类的按下反馈。
+- 小视口（卡片预览 176px 高）用 `@media (max-height: 420px)` 压缩布局，`.hint` 隐藏。
+- 动画用 `el.animate()` / CSS keyframes，不要用「设 transform → reflow → 改 transition」的 FLIP。
+- **不要用 `scrollIntoView`**，`focus()` 一律带 `{ preventScroll: true }`（否则会把外层页面滚走/抢焦点）。
+
+完整规则见 [`设计规范.md`](./设计规范.md)，写之前先读一遍。
+
+## prompt 要求
+
+`prompt` 是给 AI 复现这套设计用的，**必须自包含**——用户可能只把这串文字复制给另一边的 AI：
+
+- 结构（DOM/类名）、尺寸、颜色、动画参数（时长/缓动）、交互细节、无障碍、坑，都直接写进去；
+- 不要写「按《设计规范》」「参考本库其他设计」这类引用，对方看不到；
+- 参数要可执行、可感知：写「抖 3px / 0.22 秒」而不是「轻微抖动」。
+
+## 提交 PR
+
+1. `npm run validate` 通过（CI 也会跑）；
+2. 本地看一眼：`npm run site` → http://127.0.0.1:3090，新设计卡片能正常演示；
+3. PR 用仓库自带的模板，勾选检查清单；
+4. 一个 PR 只加一项设计或修一个问题，方便 review。
+
+## 本地开发
+
+```bash
+npm run validate   # 校验 data/
+npm run site       # 同步数据并起展示版（http://127.0.0.1:3090）
+npm run export     # 运行时数据导出回 data/
+```
+
+## 审核看什么
+
+- demo 能在卡片预览和弹窗里都正常跑；
+- prompt 自包含、参数具体；
+- 和库里已有设计不重复（重复的会建议合并或标明差异）；
+- 没有写死的颜色/尺寸导致换主题就坏。
