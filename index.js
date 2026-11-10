@@ -268,6 +268,7 @@ export function apply(ctx) {
       usage: { type: "string", description: "适用场景：什么情况下该用这套设计" },
       caution: { type: "string", description: "不适用场景：什么情况下不该用、有什么限制" },
       hint: { type: "string", description: "操作提示（页面渲染在 demo 外面，demo 里不要写 hint 元素）" },
+      inspiration: { type: "string", description: "灵感来源（可选，≤200 字，例如参考的视频/网页/开源库；版权与来源透明化用）" },
       prompt: { type: "string", description: "给 AI 的实现提示词：结构、动画参数、交互、无障碍、坑" },
       demoHtml: { type: "string", description: "完整可交互的 HTML demo（DOCTYPE 到 </html>，自带样式与脚本）" },
       query: { type: "string", description: "search/list 的搜索词：名字、标签、场景里的词，空格分隔" },
@@ -408,6 +409,7 @@ export function apply(ctx) {
           usage: args.usage,
           caution: args.caution,
           hint: args.hint,
+          inspiration: args.inspiration,
           prompt: args.prompt,
           demoHtml: args.demoHtml,
         });
@@ -421,7 +423,7 @@ export function apply(ctx) {
       if (action === "update") {
         if (!key) throw new Error("update 需要 id 或 name 指定要改哪项设计");
         const patch = {};
-        for (const field of ["tags", "aliases", "summary", "usage", "caution", "hint", "prompt", "demoHtml"]) {
+        for (const field of ["tags", "aliases", "summary", "usage", "caution", "hint", "inspiration", "prompt", "demoHtml"]) {
           if (args[field] !== undefined) patch[field] = args[field];
         }
         if (args.newName !== undefined) patch.name = args.newName;

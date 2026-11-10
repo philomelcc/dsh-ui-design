@@ -41,6 +41,7 @@ for (const meta of index.designs) {
   if (meta.usage && meta.usage.length > MAX_SCENARIO) errors.push(`[${label}] usage 超过 ${MAX_SCENARIO} 字`);
   if (meta.caution && meta.caution.length > MAX_SCENARIO) errors.push(`[${label}] caution 超过 ${MAX_SCENARIO} 字`);
   if (meta.hint && meta.hint.length > MAX_HINT) errors.push(`[${label}] hint 超过 ${MAX_HINT} 字`);
+  if (meta.inspiration && meta.inspiration.length > 200) errors.push(`[${label}] inspiration 超过 200 字`);
 
   const file = path.join(dataDir, "designs", String(meta.id) + ".json");
   if (!fs.existsSync(file)) {

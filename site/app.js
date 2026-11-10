@@ -617,6 +617,8 @@
         $('m-usage').textContent = design.usage || '';
         $('m-caution-wrap').hidden = !design.caution;
         $('m-caution').textContent = design.caution || '';
+        $('m-inspiration-wrap').hidden = !design.inspiration;
+        $('m-inspiration').textContent = design.inspiration || '';
         $('m-prompt').textContent = design.prompt || '';
         var hint = $('m-hint');
         if (design.hint) {
