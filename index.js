@@ -262,6 +262,7 @@ export function apply(ctx) {
       name: { type: "string", description: "设计名：get/update/delete 用它定位；create 时是新设计名" },
       newName: { type: "string", description: "update 时改的新名字" },
       tags: { type: "array", items: { type: "string" }, description: "标签数组，例如 [\"导航\",\"展开\"]" },
+      aliases: { type: "array", items: { type: "string" }, description: "别名/同义词（可选，帮助搜索命中，例如 [\"loading\",\"载入\"]）" },
       summary: { type: "string", description: "一句话说明（显示在卡片上）" },
       usage: { type: "string", description: "适用场景：什么情况下该用这套设计" },
       caution: { type: "string", description: "不适用场景：什么情况下不该用、有什么限制" },
@@ -311,6 +312,9 @@ export function apply(ctx) {
             .map((t) => `${t.tag}×${t.count}`)
             .join("、") || "无"}）：`,
         ];
+        if (result.mode === "fuzzy") {
+          lines.push("（没有词面直接命中，下面是字面相近的候选，可能不相关——没有合适的就自己设计。）");
+        }
         for (const d of result.items) {
           const bits = [
             `- ${d.name}${d.tags.length ? ` [${d.tags.join(", ")}]` : ""}`,
@@ -377,6 +381,7 @@ export function apply(ctx) {
         const design = createDesign({
           name: args.name,
           tags: args.tags,
+          aliases: args.aliases,
           summary: args.summary,
           usage: args.usage,
           caution: args.caution,
@@ -394,7 +399,7 @@ export function apply(ctx) {
       if (action === "update") {
         if (!key) throw new Error("update 需要 id 或 name 指定要改哪项设计");
         const patch = {};
-        for (const field of ["tags", "summary", "usage", "caution", "hint", "prompt", "demoHtml"]) {
+        for (const field of ["tags", "aliases", "summary", "usage", "caution", "hint", "prompt", "demoHtml"]) {
           if (args[field] !== undefined) patch[field] = args[field];
         }
         if (args.newName !== undefined) patch.name = args.newName;
