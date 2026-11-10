@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UI 设计知识库 · 展示版</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="head">
+      <div>
+        <h1>UI 设计</h1>
+        <p class="sub" id="sub">加载中…</p>
+      </div>
+      <div class="actions">
+        <div class="search-tags" id="search-tags" role="group" aria-label="搜索条件">
+          <input id="search" class="tag-input" placeholder="搜索设计名 / tag / 场景… 回车固定标签" aria-label="搜索设计" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="theme-picker" id="theme-picker">
+          <button class="btn theme-trigger" id="theme-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="配色方案">
+            <span id="theme-label">跟随系统</span>
+            <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="theme-search" id="theme-search-wrap">
+            <input id="theme-search" aria-label="搜索配色方案" placeholder="搜索配色方案…" autocomplete="off">
+          </div>
+          <div class="theme-panel" id="theme-panel" hidden role="listbox"></div>
+        </div>
+      </div>
+    </header>
+
+    <nav class="chips" id="chips" aria-label="标签筛选"></nav>
+
+    <p class="note">点开卡片看演示和适用场景；复制「实现提示词」粘给任何 AI，它就能按同一套设计实现。每项都标了「适用 / 不适用」，用之前先对一下场景——没有合适的就别硬套。</p>
+
+    <main id="grid" class="grid" aria-live="polite"></main>
+    <div class="pager-wrap" id="pager"></div>
+    <div class="empty" id="empty" hidden></div>
+  </div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modal-veil" data-close></div>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="m-title">
+      <header class="modal-head">
+        <div>
+          <h2 id="m-title"></h2>
+          <p class="sub" id="m-sub"></p>
+        </div>
+        <button class="btn ghost" data-close aria-label="关闭">✕</button>
+      </header>
+      <div class="modal-body">
+        <div class="demo-col">
+          <div class="demo" id="m-demo"></div>
+          <div class="hint-bar" id="m-hint" hidden></div>
+        </div>
+        <aside class="side">
+          <div class="side-scroll">
+            <p id="m-summary"></p>
+            <section id="m-usage-wrap" hidden><h3>适用场景</h3><p id="m-usage"></p></section>
+            <section id="m-caution-wrap" hidden><h3>不适用</h3><p id="m-caution" class="caution"></p></section>
+            <section><h3>实现提示词</h3><pre id="m-prompt"></pre></section>
+          </div>
+          <div class="side-actions">
+            <button class="btn" id="copy-prompt">复制提示词</button>
+            <button class="btn" id="copy-json">复制 JSON</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "name": "@philomelcc/dsh-ui-design",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "UI design knowledge base for DeepSeek Harness: filterable design cards with live demos, per-design implementation prompts, usage/caution notes, and an agent tool that finds and applies them.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "ui-design",
+    "design-system",
+    "knowledge-base"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/philomelcc/dsh-ui-design.git"
+  },
+  "homepage": "https://github.com/philomelcc/dsh-ui-design",
+  "scripts": {
+    "site": "node scripts/build-site-data.mjs && node site/serve.mjs",
+    "site:build": "node scripts/build-site-data.mjs",
+    "export": "node scripts/export-data.mjs",
+    "validate": "node scripts/validate.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "设计规范.md",
+    "data"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  }
+}
