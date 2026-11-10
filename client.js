@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: '@local/dsh-ui-design',
+  id: '@philomelcc/dsh-ui-design',
   factory(require) {
     const React = require('react');
     const ReactDOM = require('react-dom');
