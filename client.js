@@ -811,6 +811,7 @@ window.__uiDemoCursor=function(){
             designs: json.designs || [],
             tags: json.tags || [],
             total: json.total || 0,
+            libraryTotal: json.libraryTotal || json.total || 0,
             loading: false,
             error: '',
           });
@@ -857,16 +858,17 @@ window.__uiDemoCursor=function(){
       };
 
       const total = data.total;
+      const libraryTotal = data.libraryTotal || total;
       const page = Math.floor(offset / PAGE_SIZE) + 1;
       const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-      const tagChips = [{ tag: 'all', count: total }].concat(data.tags);
+      const tagChips = [{ tag: 'all', count: libraryTotal }].concat(data.tags);
 
       return h('div', { className: 'uid-page' },
         h('div', { className: 'uid-head' },
           h('div', null,
             h('h2', { className: 'uid-title' }, 'UI 设计'),
             h('div', { className: 'uid-sub' },
-              '前端知识库 · ' + total + ' 项设计 · ' + data.tags.length + ' 个 tag' +
+              '前端知识库 · ' + libraryTotal + ' 项设计 · ' + data.tags.length + ' 个 tag' +
               (data.loading ? ' · 加载中…' : ''),
             ),
           ),

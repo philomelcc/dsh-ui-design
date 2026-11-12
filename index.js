@@ -135,6 +135,8 @@ export function apply(ctx) {
       ok(res, {
         designs: result.items,
         total: result.total,
+        // 全库总数：页面副标题和「全部」计数用它，不随筛选变化
+        libraryTotal: listDesigns({ limit: 0 }).total,
         offset: result.offset,
         limit: result.limit,
         tags: listTags(),
