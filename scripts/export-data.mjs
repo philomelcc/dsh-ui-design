@@ -15,14 +15,23 @@ if (!fs.existsSync(path.join(src, "index.json"))) {
   throw new Error("没找到 " + path.join(src, "index.json") + "，先在 dsh 里打开一次 UI 设计页");
 }
 
-fs.rmSync(dst, { recursive: true, force: true });
-fs.mkdirSync(path.join(dst, "designs"), { recursive: true });
+// 只同步 index.json 和 designs/，保留 data/ 下的其它文件（synonyms.json 等）
+const dstDesigns = path.join(dst, "designs");
+fs.mkdirSync(dstDesigns, { recursive: true });
 fs.copyFileSync(path.join(src, "index.json"), path.join(dst, "index.json"));
+
+// 清掉仓库里已不存在的设计分片（只删 .json，别碰其它文件）
+const liveFiles = new Set(
+  fs.readdirSync(path.join(src, "designs")).filter((f) => f.endsWith(".json")),
+);
+for (const file of fs.readdirSync(dstDesigns)) {
+  if (file.endsWith(".json") && !liveFiles.has(file)) fs.rmSync(path.join(dstDesigns, file));
+}
 
 let copied = 0;
 for (const file of fs.readdirSync(path.join(src, "designs"))) {
   if (!file.endsWith(".json")) continue;
-  fs.copyFileSync(path.join(src, "designs", file), path.join(dst, "designs", file));
+  fs.copyFileSync(path.join(src, "designs", file), path.join(dstDesigns, file));
   copied++;
 }
 
