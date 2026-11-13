@@ -278,6 +278,25 @@ Element.prototype.scrollIntoView=function(){};
       if(document.body) document.body.setAttribute('inert','');
     });
   }
+})();
+(function(){
+  var nativeTimeout = window.setTimeout.bind(window);
+  var nativeInterval = window.setInterval.bind(window);
+  window.setTimeout = function(fn, ms){
+    var args = Array.prototype.slice.call(arguments, 2);
+    function wrapped(){
+      if (document.hidden) { nativeTimeout(wrapped, typeof ms === 'number' ? ms : 0); return; }
+      if (typeof fn === 'function') fn.apply(window, args);
+    }
+    return nativeTimeout(wrapped, ms);
+  };
+  window.setInterval = function(fn, ms){
+    var args = Array.prototype.slice.call(arguments, 2);
+    return nativeInterval(function(){
+      if (document.hidden) return;
+      if (typeof fn === 'function') fn.apply(window, args);
+    }, ms);
+  };
 })();`;
 
     // A fake cursor for the auto-play demos: click demos move it, press it and

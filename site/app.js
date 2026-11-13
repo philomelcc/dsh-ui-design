@@ -236,6 +236,15 @@
   }
 
   // ---------- demo 注入 ----------
+  // 后台标签页定时器积压守卫：页面隐藏时跳过后台回调，避免切回时集中补跑。
+  var TIMER_GUARD =
+    '(function(){var t=window.setTimeout.bind(window),i=window.setInterval.bind(window);' +
+    'window.setTimeout=function(fn,ms){var a=Array.prototype.slice.call(arguments,2);' +
+    'function w(){if(document.hidden){t(w,typeof ms==="number"?ms:0);return;}if(typeof fn==="function")fn.apply(window,a);}' +
+    'return t(w,ms);};' +
+    'window.setInterval=function(fn,ms){var a=Array.prototype.slice.call(arguments,2);' +
+    'return i(function(){if(document.hidden)return;if(typeof fn==="function")fn.apply(window,a);},ms);};})();';
+
   function readTokens() {
     var cs = getComputedStyle(document.documentElement);
     var out = {};
@@ -252,7 +261,10 @@
     // 光拦 Element.prototype.focus 不够——筛选「交互」时会失焦就是这个原因）。
     var guard =
       'Element.prototype.scrollIntoView=function(){};' +
-      '(function(){var origFocus=Element.prototype.focus;Element.prototype.focus=function(){if(window.__uiInteractive){origFocus.call(this,{preventScroll:true});}};if(!window.__uiInteractive){window.focus=function(){};document.addEventListener("DOMContentLoaded",function(){if(document.body)document.body.setAttribute("inert","");});}})();';
+      '(function(){var origFocus=Element.prototype.focus;Element.prototype.focus=function(){if(window.__uiInteractive){origFocus.call(this,{preventScroll:true});}};if(!window.__uiInteractive){window.focus=function(){};document.addEventListener("DOMContentLoaded",function(){if(document.body)document.body.setAttribute("inert","");});}})();' +
+      // 后台标签页里定时器会被节流/积压，切回时集中补跑会造成 demo 抽搐。
+      // 包装 setTimeout/setInterval：隐藏时不执行回调，不积压、不补跑。
+      TIMER_GUARD;
     var script = '<script>window.__uiInteractive=' + Boolean(interactive) + ';' + guard + CURSOR_JS + '<' + '/script>';
     var out = String(html || '');
     if (/<\/head>/i.test(out)) return out.replace(/<\/head>/i, style + script + '</head>');
