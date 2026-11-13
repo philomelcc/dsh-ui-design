@@ -64,13 +64,14 @@ window.__ModuleLoader__.load({
 .uid-skel { position:absolute; inset:0; background:linear-gradient(100deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.07) 37%, rgba(255,255,255,.03) 63%); background-size:400% 100%; animation:uid-shimmer 1.6s linear infinite; }
 @keyframes uid-shimmer { 0% { background-position:100% 0; } 100% { background-position:0 0; } }
 .uid-cardbody { flex:1; display:flex; flex-direction:column; padding:12px 14px 14px; }
+.uid-cardmain { flex:1; }
 .uid-name { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:650; letter-spacing:.1px; }
 .uid-nametext { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .uid-copy { appearance:none; flex:0 0 auto; width:20px; height:20px; padding:0; display:grid; place-items:center; border:0; border-radius:5px; background:transparent; color:${C.label3}; cursor:pointer; opacity:.55; transition:opacity .15s, color .15s, background .15s; }
 .uid-copy:hover { opacity:1; color:${C.brand}; background:${C.bg2}; }
 .uid-copy.copied { opacity:1; color:${C.green}; }
 .uid-summary { margin-top:6px; font-size:12px; line-height:1.6; color:${C.label2}; }
-.uid-cardmeta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:8px; }
+.uid-cardmeta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:0; padding-top:8px; }
 .uid-tag { font-size:11px; padding:2px 8px; border-radius:999px; background:color-mix(in srgb,${C.brand} 13%,transparent); color:color-mix(in srgb,${C.brand} 72%,${C.label}); }
 .uid-cue { margin-left:auto; font-size:11px; color:${C.label2}; opacity:0; transition:opacity .2s; }
 .uid-card:hover .uid-cue, .uid-card:focus-visible .uid-cue { opacity:1; }
@@ -494,18 +495,20 @@ window.__uiDemoCursor=function(){
       },
         h(PreviewFrame, { design, tokens: props.tokens }),
         h('div', { className: 'uid-cardbody' },
-          h('div', { className: 'uid-name' },
-            h('span', { className: 'uid-nametext' }, design.name),
-            h('button', {
-              type: 'button',
-              className: 'uid-copy' + (copied ? ' copied' : ''),
-              'aria-label': '复制标题：' + design.name,
-              title: '复制标题',
-              onClick: copyName,
-              onKeyDown: (event) => event.stopPropagation(),
-            }, copyIcon(copied)),
+          h('div', { className: 'uid-cardmain' },
+            h('div', { className: 'uid-name' },
+              h('span', { className: 'uid-nametext' }, design.name),
+              h('button', {
+                type: 'button',
+                className: 'uid-copy' + (copied ? ' copied' : ''),
+                'aria-label': '复制标题：' + design.name,
+                title: '复制标题',
+                onClick: copyName,
+                onKeyDown: (event) => event.stopPropagation(),
+              }, copyIcon(copied)),
+            ),
+            design.summary ? h('div', { className: 'uid-summary' }, design.summary) : null,
           ),
-          design.summary ? h('div', { className: 'uid-summary' }, design.summary) : null,
           h('div', { className: 'uid-cardmeta' },
             design.tags.map((tag) => h('span', { className: 'uid-tag', key: tag }, tag)),
             h('span', { className: 'uid-cue' }, '点击体验 →'),
@@ -521,6 +524,13 @@ window.__uiDemoCursor=function(){
       const [open, setOpen] = React.useState(false);
       const closingRef = React.useRef(false);
       const [copied, setCopied] = React.useState('');
+      const copyTitle = (text) => {
+        if (!(navigator.clipboard && navigator.clipboard.writeText)) return;
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied('title');
+          window.setTimeout(() => setCopied(''), 1200);
+        }, () => {});
+      };
 
       const close = React.useCallback(() => {
         if (closingRef.current) return;
@@ -593,7 +603,17 @@ window.__uiDemoCursor=function(){
           },
             h('div', { className: 'uid-modal-head' },
               h('div', { style: { minWidth: 0, flex: '1 1 auto' } },
-                h('div', { className: 'uid-modal-title' }, design.name),
+                h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  h('div', { className: 'uid-modal-title' }, design.name),
+                  h('button', {
+                    type: 'button',
+                    className: 'uid-copy' + (copied === 'title' ? ' copied' : ''),
+                    'aria-label': '复制标题：' + design.name,
+                    title: '复制标题',
+                    onClick: () => copyTitle(design.name),
+                    onKeyDown: (event) => event.stopPropagation(),
+                  }, copyIcon(copied === 'title')),
+                ),
                 h('div', { className: 'uid-modal-sub' },
                   design.tags.join(' · ') || '无 tag',
                   design.summary ? ' · ' + design.summary : '',

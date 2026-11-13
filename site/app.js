@@ -543,6 +543,8 @@
 
     var body = document.createElement('div');
     body.className = 'card-body';
+    var main = document.createElement('div');
+    main.className = 'card-main';
     var name = document.createElement('div');
     name.className = 'card-name';
     var nameText = document.createElement('span');
@@ -561,13 +563,14 @@
       copyTitle(design.name, copyBtn);
     });
     name.appendChild(copyBtn);
-    body.appendChild(name);
+    main.appendChild(name);
     if (design.summary) {
       var sum = document.createElement('div');
       sum.className = 'card-summary';
       sum.textContent = design.summary;
-      body.appendChild(sum);
+      main.appendChild(sum);
     }
+    body.appendChild(main);
     var meta = document.createElement('div');
     meta.className = 'card-meta';
     (design.tags || []).forEach(function (tag) {
@@ -689,6 +692,10 @@
       .then(function (design) {
         current = design;
         $('m-title').textContent = design.name;
+        $('m-copy').innerHTML = copyIconSvg();
+        $('m-copy').onclick = function () {
+          copyTitle(design.name, $('m-copy'));
+        };
         $('m-sub').textContent = (design.tags || []).join(' · ');
         $('m-summary').textContent = design.summary || '';
         $('m-usage-wrap').hidden = !design.usage;
