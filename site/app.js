@@ -114,9 +114,22 @@
       label.textContent = current ? current.name : '跟随系统';
     }
     renderThemeOptions('');
+    refreshPreviews();
     try {
       localStorage.setItem(THEME_KEY, id);
     } catch (e) {}
+  }
+
+  /** 主题切换后重建已加载的卡片预览 iframe（srcdoc 是独立文档，不继承外层变量）。 */
+  function refreshPreviews() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.preview iframe[data-design-id]'),
+      function (iframe) {
+        var id = iframe.getAttribute('data-design-id');
+        var preview = iframe.parentElement;
+        if (id && preview) loadPreview(id, preview);
+      }
+    );
   }
 
   function renderThemeOptions(filter) {
@@ -544,6 +557,7 @@
         iframe.setAttribute('scrolling', 'no');
         iframe.setAttribute('loading', 'lazy');
         iframe.title = design.name;
+        iframe.setAttribute('data-design-id', id);
         iframe.srcdoc = buildSrcDoc(design.demoHtml, readTokens(), false);
         preview.innerHTML = '';
         preview.appendChild(iframe);
