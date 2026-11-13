@@ -4,7 +4,7 @@
 
 - **给 AI 用**：agent 做前端任务时先按场景搜，匹配到就取提示词和 demo 当实现依据；没有合适的就自己设计，不硬套。
 - **给人用**：页面里按 tag 筛选、点卡片看 demo（可交互）、复制提示词给任何 AI，或复制 JSON。
-- **不需要 dsh 也能看**：仓库里带一个纯静态展示版。
+- **不需要 dsh 也能看**：带一个纯静态展示版，正式版将部署在 https://ui.philomel.cc。
 
 ## 安装
 
@@ -35,13 +35,15 @@ dsh plugin --profile web add @philomelcc/dsh-ui-design
 
 ## 展示版（不需要 dsh）
 
+正式版会部署在个人网站 **https://ui.philomel.cc**（域名备案完成后上线）；本地预览：
+
 ```bash
 npm run site        # 把 data/ 同步到 site/data/ 并起本地服务
 # 或
 node site/serve.mjs # 直接起，默认 http://127.0.0.1:3090
 ```
 
-展示版功能：卡片网格（分页）、tag 筛选、标签输入搜索、弹窗 demo、复制提示词/JSON、`配色方案` 直接作为主题切换。
+展示版功能：卡片网格（分页）、tag 筛选、标签输入搜索、弹窗 demo、复制标题/提示词/JSON、`配色方案` 直接作为主题切换。
 
 ## 检索
 
