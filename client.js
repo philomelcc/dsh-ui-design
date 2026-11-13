@@ -57,16 +57,20 @@ window.__ModuleLoader__.load({
 .uid-note { font-size:12px; color:${C.label2}; margin:10px 0 18px; line-height:1.7; }
 .uid-note code { font-size:11.5px; padding:1px 6px; border-radius:6px; background:${C.bg2}; color:${C.label}; }
 .uid-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; }
-.uid-card { position:relative; border-radius:16px; overflow:hidden; background:${C.bg1}; border:1px solid ${C.border1}; cursor:pointer; transition:transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s, border-color .2s; outline:none; }
+.uid-card { position:relative; display:flex; flex-direction:column; height:100%; border-radius:16px; overflow:hidden; background:${C.bg1}; border:1px solid ${C.border1}; cursor:pointer; transition:transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s, border-color .2s; outline:none; }
 .uid-card:hover, .uid-card:focus-visible { transform:translateY(-4px); border-color:rgba(99,102,241,.5); box-shadow:0 20px 54px rgba(0,0,0,.35); }
 .uid-preview { position:relative; height:176px; background:${C.bgBase}; overflow:hidden; border-bottom:1px solid ${C.border1}; }
 .uid-preview iframe { display:block; width:100%; height:100%; border:0; pointer-events:none; }
 .uid-skel { position:absolute; inset:0; background:linear-gradient(100deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.07) 37%, rgba(255,255,255,.03) 63%); background-size:400% 100%; animation:uid-shimmer 1.6s linear infinite; }
 @keyframes uid-shimmer { 0% { background-position:100% 0; } 100% { background-position:0 0; } }
-.uid-cardbody { padding:12px 14px 14px; }
-.uid-name { font-size:14px; font-weight:650; letter-spacing:.1px; }
+.uid-cardbody { flex:1; display:flex; flex-direction:column; padding:12px 14px 14px; }
+.uid-name { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:650; letter-spacing:.1px; }
+.uid-nametext { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.uid-copy { appearance:none; flex:0 0 auto; width:20px; height:20px; padding:0; display:grid; place-items:center; border:0; border-radius:5px; background:transparent; color:${C.label3}; cursor:pointer; opacity:.55; transition:opacity .15s, color .15s, background .15s; }
+.uid-copy:hover { opacity:1; color:${C.brand}; background:${C.bg2}; }
+.uid-copy.copied { opacity:1; color:${C.green}; }
 .uid-summary { margin-top:6px; font-size:12px; line-height:1.6; color:${C.label2}; }
-.uid-cardmeta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.uid-cardmeta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:8px; }
 .uid-tag { font-size:11px; padding:2px 8px; border-radius:999px; background:color-mix(in srgb,${C.brand} 13%,transparent); color:color-mix(in srgb,${C.brand} 72%,${C.label}); }
 .uid-cue { margin-left:auto; font-size:11px; color:${C.label2}; opacity:0; transition:opacity .2s; }
 .uid-card:hover .uid-cue, .uid-card:focus-visible .uid-cue { opacity:1; }
@@ -451,9 +455,29 @@ window.__uiDemoCursor=function(){
     }
 
     // ---------- card ----------
+    function copyIcon(copied) {
+      return h('svg', {
+        viewBox: '0 0 24 24', width: 12, height: 12, fill: 'none',
+        stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+      }, copied
+        ? h('path', { d: 'M5 12.5l4.2 4.1L20 6.5' })
+        : [h('rect', { key: 'r', x: 9, y: 9, width: 11, height: 11, rx: 2 }), h('path', { key: 'p', d: 'M5 15V5a2 2 0 0 1 2-2h10' })]);
+    }
+
     function DesignCard(props) {
       const design = props.design;
       const open = () => props.onOpen(design);
+      const [copied, setCopied] = React.useState(false);
+      const copyTimer = React.useRef(null);
+      const copyName = (event) => {
+        event.stopPropagation();
+        if (!(navigator.clipboard && navigator.clipboard.writeText)) return;
+        navigator.clipboard.writeText(design.name).then(() => {
+          setCopied(true);
+          if (copyTimer.current) window.clearTimeout(copyTimer.current);
+          copyTimer.current = window.setTimeout(() => setCopied(false), 1200);
+        }, () => {});
+      };
       return h('article', {
         className: 'uid-card',
         'data-uid-card': design.id,
@@ -470,7 +494,17 @@ window.__uiDemoCursor=function(){
       },
         h(PreviewFrame, { design, tokens: props.tokens }),
         h('div', { className: 'uid-cardbody' },
-          h('div', { className: 'uid-name' }, design.name),
+          h('div', { className: 'uid-name' },
+            h('span', { className: 'uid-nametext' }, design.name),
+            h('button', {
+              type: 'button',
+              className: 'uid-copy' + (copied ? ' copied' : ''),
+              'aria-label': '复制标题：' + design.name,
+              title: '复制标题',
+              onClick: copyName,
+              onKeyDown: (event) => event.stopPropagation(),
+            }, copyIcon(copied)),
+          ),
           design.summary ? h('div', { className: 'uid-summary' }, design.summary) : null,
           h('div', { className: 'uid-cardmeta' },
             design.tags.map((tag) => h('span', { className: 'uid-tag', key: tag }, tag)),

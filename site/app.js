@@ -490,6 +490,43 @@
       (state.query || state.tagWords.length || state.tag !== 'all' ? ' · 筛选后 ' + items.length + ' 项' : '');
   }
 
+  function copyIconSvg() {
+    return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  }
+  function checkIconSvg() {
+    return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.1L20 6.5"/></svg>';
+  }
+  function copyTitle(text, btn) {
+    var restore = function () {
+      btn.classList.remove('copied');
+      btn.innerHTML = copyIconSvg();
+    };
+    var done = function () {
+      btn.classList.add('copied');
+      btn.innerHTML = checkIconSvg();
+      setTimeout(restore, 1200);
+    };
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch (e) {}
+      document.body.removeChild(ta);
+      done();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+
   function makeCard(design) {
     var card = document.createElement('article');
     card.className = 'card';
@@ -508,7 +545,22 @@
     body.className = 'card-body';
     var name = document.createElement('div');
     name.className = 'card-name';
-    name.textContent = design.name;
+    var nameText = document.createElement('span');
+    nameText.className = 'card-name-text';
+    nameText.textContent = design.name;
+    name.appendChild(nameText);
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'card-copy';
+    copyBtn.setAttribute('aria-label', '复制标题：' + design.name);
+    copyBtn.title = '复制标题';
+    copyBtn.innerHTML = copyIconSvg();
+    copyBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      copyTitle(design.name, copyBtn);
+    });
+    name.appendChild(copyBtn);
     body.appendChild(name);
     if (design.summary) {
       var sum = document.createElement('div');
