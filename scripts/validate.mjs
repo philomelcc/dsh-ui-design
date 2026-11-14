@@ -29,6 +29,58 @@ const names = new Map();
 const MAX_SCENARIO = 120;
 const MAX_HINT = 80;
 
+/**
+ * 去掉 HTML / JS 注释，只留下会真正执行的代码。
+ * demo 里常在注释里解释「为什么不用 scrollIntoView()」，直接 includes 会误报。
+ * 字符串内容原样保留（里面的 // 不算注释，比如 "http://..."）。
+ */
+function stripComments(source) {
+  const s = String(source || "");
+  const n = s.length;
+  let out = "";
+  let i = 0;
+  while (i < n) {
+    const ch = s[i];
+    const next = s[i + 1];
+    if (ch === "<" && s.startsWith("<!--", i)) {
+      const end = s.indexOf("-->", i + 4);
+      i = end === -1 ? n : end + 3;
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      const end = s.indexOf("*/", i + 2);
+      i = end === -1 ? n : end + 2;
+      continue;
+    }
+    if (ch === "/" && next === "/") {
+      const end = s.indexOf("\n", i + 2);
+      i = end === -1 ? n : end;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const quote = ch;
+      let j = i + 1;
+      while (j < n) {
+        if (s[j] === "\\") {
+          j += 2;
+          continue;
+        }
+        if (s[j] === quote) {
+          j += 1;
+          break;
+        }
+        j += 1;
+      }
+      out += s.slice(i, j);
+      i = j;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
 for (const meta of index.designs) {
   const label = meta.name || meta.id;
   if (!meta.id) errors.push(`[${label}] 缺少 id`);
@@ -59,8 +111,10 @@ for (const meta of index.designs) {
   const html = String(design.demoHtml || "");
   if (!html.includes("<!doctype") && !html.includes("<!DOCTYPE")) errors.push(`[${label}] demoHtml 不是完整 HTML 文档`);
   if (html.length > 400 * 1024) errors.push(`[${label}] demoHtml 超过 400KB`);
-  if (html.includes("scrollIntoView(")) warnings.push(`[${label}] demo 里有 scrollIntoView（会把外层页面滚走）`);
-  if (html.includes(".focus(") && !html.includes("preventScroll")) {
+  // 只看真正会执行的代码：注释里解释「为什么不用 scrollIntoView」不算问题
+  const code = stripComments(html);
+  if (code.includes("scrollIntoView(")) warnings.push(`[${label}] demo 里有 scrollIntoView（会把外层页面滚走）`);
+  if (code.includes(".focus(") && !code.includes("preventScroll")) {
     warnings.push(`[${label}] demo 里有裸 focus（可能抢外层焦点）`);
   }
 }

@@ -38,7 +38,8 @@
     "locale/*.json",
     "icon.svg",
     "设计规范.md",
-    "data"
+    "data",
+    "docs"
   ],
   "dsh": {
     "bundle": {
