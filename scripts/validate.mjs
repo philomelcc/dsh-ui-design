@@ -26,8 +26,10 @@ if (!Array.isArray(index.designs)) {
 }
 
 const names = new Map();
+const allNames = new Set(index.designs.map((m) => m.name));
 const MAX_SCENARIO = 120;
 const MAX_HINT = 80;
+const MAX_RELATED = 8;
 
 /**
  * 去掉 HTML / JS 注释，只留下会真正执行的代码。
@@ -109,6 +111,31 @@ for (const meta of index.designs) {
   }
   if (!design.prompt || String(design.prompt).trim().length < 20) errors.push(`[${label}] prompt 缺失或过短`);
   const html = String(design.demoHtml || "");
+
+  // ── 引用（related）体检 ──────────────────────────────────────────────
+  // 正文里用「」提到别的设计时，related 必须登记那个设计名；related 里的名字必须真实存在。
+  // 允许分两次添加（先写引用、后补被引用项），所以「不存在」只是警告。
+  const related = Array.isArray(meta.related) ? meta.related.filter(Boolean) : [];
+  if (related.length > MAX_RELATED) errors.push(`[${label}] related 超过 ${MAX_RELATED} 个`);
+  for (const ref of related) {
+    if (ref === meta.name) warnings.push(`[${label}] related 里引用了自己`);
+    else if (!allNames.has(ref)) {
+      warnings.push(`[${label}] related 引用的「${ref}」在库里不存在（待补，或改名后忘了同步）`);
+    }
+  }
+  const refText = [meta.summary, meta.usage, meta.caution, meta.hint, design.prompt]
+    .filter(Boolean)
+    .join("\n");
+  const mentioned = new Set();
+  for (const m of refText.matchAll(/「([^」]{1,40})」/g)) {
+    const inner = m[1].trim();
+    if (inner && inner !== meta.name && allNames.has(inner)) mentioned.add(inner);
+  }
+  for (const name of mentioned) {
+    if (!related.includes(name)) {
+      warnings.push(`[${label}] 正文提到「${name}」但 related 里没登记（AI 顺着引用找时的兜底会缺一条）`);
+    }
+  }
   if (!html.includes("<!doctype") && !html.includes("<!DOCTYPE")) errors.push(`[${label}] demoHtml 不是完整 HTML 文档`);
   if (html.length > 400 * 1024) errors.push(`[${label}] demoHtml 超过 400KB`);
   // 只看真正会执行的代码：注释里解释「为什么不用 scrollIntoView」不算问题
@@ -119,7 +146,14 @@ for (const meta of index.designs) {
   }
 }
 
-console.log(`检查 ${index.designs.length} 项设计`);
+const withRelated = index.designs.filter((m) => Array.isArray(m.related) && m.related.length).length;
+const totalRefs = index.designs.reduce(
+  (n, m) => n + (Array.isArray(m.related) ? m.related.length : 0),
+  0,
+);
+console.log(
+  `检查 ${index.designs.length} 项设计（${withRelated} 项带 related 引用，共 ${totalRefs} 条）`,
+);
 if (warnings.length) {
   console.log(`\n警告 ${warnings.length} 条：`);
   warnings.forEach((w) => console.log("  ! " + w));

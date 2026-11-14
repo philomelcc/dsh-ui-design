@@ -30,10 +30,24 @@
 | `usage` | 建议 | 适用场景，≤120 字（1–2 句） |
 | `caution` | 建议 | 不适用场景，≤120 字 |
 | `hint` | 可选 | 操作提示，≤80 字；页面渲染在演示区外，**demo 里不要写提示行** |
+| `related` | 建议 | 相关设计名数组（≤8 个）：正文用「」提到别的设计时，把那些名字登记进来，AI 取设计时能顺着找（兜底） |
 | `prompt` | ✅ | 实现提示词，见下方要求 |
 | `demoHtml` | ✅ | 完整 HTML（`<!doctype html>` 到 `</html>`），≤400KB |
 
-`data/index.json` 的元数据只需 `id / name / tags / summary / usage / caution / hint / createdAt / updatedAt`，不含 `prompt` 和 `demoHtml`。
+`data/index.json` 的元数据只需 `id / name / tags / aliases / summary / usage / caution / hint / inspiration / related / createdAt / updatedAt`，不含 `prompt` 和 `demoHtml`。
+
+### 引用其他设计（related）
+
+正文里说「这种情况改用『时间线』」时，设计名要用「」写全，并登记到 `related`：
+
+```json
+"usage": "3–6 步线性流程用它；纯事件记录用「时间线」，不是它。",
+"related": ["时间线"]
+```
+
+- 名字必须和库里完全一致；被引用的设计还没添加也可以先登记，`validate` 只报警告（允许分两次补）。
+- 正文提到设计名但没登记，`validate` 也会警告。
+- `demoHtml` 里的「」是界面文案，不算引用。
 
 ## demo 要求（硬性）
 

@@ -18,6 +18,8 @@ import {
   createDesign,
   updateDesign,
   deleteDesign,
+  resolveRefs,
+  findReferrers,
   dataFile,
 } from "./lib/store.js";
 
@@ -177,10 +179,13 @@ export function apply(ctx) {
       const design = createDesign({
         name: body.name,
         tags: body.tags,
+        aliases: body.aliases,
+        related: body.related,
         summary: body.summary,
         usage: body.usage,
         caution: body.caution,
         hint: body.hint,
+        inspiration: body.inspiration,
         prompt: body.prompt,
         demoHtml: body.demoHtml,
       });
@@ -196,7 +201,19 @@ export function apply(ctx) {
       const key = body.id || body.name;
       if (!key) throw new Error("要更新哪项设计？请给 id 或 name");
       const patch = {};
-      for (const field of ["name", "tags", "summary", "usage", "caution", "hint", "prompt", "demoHtml"]) {
+      for (const field of [
+        "name",
+        "tags",
+        "aliases",
+        "related",
+        "summary",
+        "usage",
+        "caution",
+        "hint",
+        "inspiration",
+        "prompt",
+        "demoHtml",
+      ]) {
         if (body[field] !== undefined) patch[field] = body[field];
       }
       const design = updateDesign(key, patch);
@@ -266,6 +283,12 @@ export function apply(ctx) {
       newName: { type: "string", description: "update 时改的新名字" },
       tags: { type: "array", items: { type: "string" }, description: "标签数组，例如 [\"导航\",\"展开\"]" },
       aliases: { type: "array", items: { type: "string" }, description: "别名/同义词（可选，帮助搜索命中，例如 [\"loading\",\"载入\"]）" },
+      related: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "相关设计名数组：summary/usage/caution/prompt 里用「」提到别的设计时，把那些设计名填在这里（通常 1–4 个）。AI 取设计时会顺着引用再查一次，避免搜偏。名字必须和库里的设计名完全一致；被引用的设计还没添加时也照写，validate 会提示待补。",
+      },
       summary: { type: "string", description: "一句话说明（显示在卡片上）" },
       usage: { type: "string", description: "适用场景：什么情况下该用这套设计" },
       caution: { type: "string", description: "不适用场景：什么情况下不该用、有什么限制" },
@@ -381,6 +404,25 @@ export function apply(ctx) {
               .join("、") || "（空）"}。`,
           );
         }
+        const refRows = resolveRefs(design.related);
+        const refLines = [];
+        if (refRows.length) {
+          refLines.push(
+            "",
+            "相关设计（正文里提到、可能更适合的场景；如果当前这项匹配得不准，按名字再 get 一次确认）：",
+          );
+          for (const row of refRows) {
+            if (row.meta) {
+              refLines.push(
+                `- ${row.meta.name}${row.meta.tags.length ? ` [${row.meta.tags.join(", ")}]` : ""}${
+                  row.meta.summary ? ` — ${row.meta.summary}` : ""
+                }`,
+              );
+            } else {
+              refLines.push(`- ${row.name}（⚠ 库里还没有这项，属于待补的引用）`);
+            }
+          }
+        }
         const lines = [
           `【${design.name}】`,
           design.tags.length ? `tag：${design.tags.join("、")}` : "tag：无",
@@ -388,6 +430,7 @@ export function apply(ctx) {
           design.usage ? `适用：${design.usage}` : "",
           design.caution ? `不适用：${design.caution}` : "",
           design.hint ? `操作提示：${design.hint}` : "",
+          ...refLines,
           "",
           "实现提示词：",
           design.prompt,
@@ -407,6 +450,7 @@ export function apply(ctx) {
           name: args.name,
           tags: args.tags,
           aliases: args.aliases,
+          related: args.related,
           summary: args.summary,
           usage: args.usage,
           caution: args.caution,
@@ -415,23 +459,38 @@ export function apply(ctx) {
           prompt: args.prompt,
           demoHtml: args.demoHtml,
         });
+        const missingRefs = resolveRefs(design.related).filter((r) => !r.meta);
         return {
-          text: `已创建「${design.name}」（id: ${design.id}，tag：${design.tags.join("、") || "无"}）。UI设计页刷新即可看到。${
+          text: `已创建「${design.name}」（id: ${design.id}，tag：${design.tags.join("、") || "无"}${
+            design.related.length ? `，相关设计 ${design.related.length} 个` : ""
+          }）。UI设计页刷新即可看到。${
             design.usage || design.caution ? "" : "（还没写使用场景，建议补一下 usage/caution。）"
+          }${
+            missingRefs.length
+              ? `\n注意：related 里 ${missingRefs.map((r) => `「${r.name}」`).join("、")} 在库里还没有对应设计——如果确实需要，记得补上（validate 会一直提示）。`
+              : ""
           }`,
         };
       }
 
       if (action === "update") {
         if (!key) throw new Error("update 需要 id 或 name 指定要改哪项设计");
+        const before = getDesign(key);
         const patch = {};
-        for (const field of ["tags", "aliases", "summary", "usage", "caution", "hint", "inspiration", "prompt", "demoHtml"]) {
+        for (const field of ["tags", "aliases", "related", "summary", "usage", "caution", "hint", "inspiration", "prompt", "demoHtml"]) {
           if (args[field] !== undefined) patch[field] = args[field];
         }
         if (args.newName !== undefined) patch.name = args.newName;
         const design = updateDesign(key, patch);
+        let renamed = "";
+        if (before && before.name !== design.name) {
+          const referrers = findReferrers(before.name);
+          if (referrers.length) {
+            renamed = `\n注意：有 ${referrers.length} 项设计通过 related 引用了旧名「${before.name}」，记得把它们改成「${design.name}」：${referrers.join("、")}。`;
+          }
+        }
         return {
-          text: `已更新「${design.name}」（id: ${design.id}）；改动字段：${Object.keys(patch).join("、") || "无"}。`,
+          text: `已更新「${design.name}」（id: ${design.id}）；改动字段：${Object.keys(patch).join("、") || "无"}。${renamed}`,
         };
       }
 
@@ -456,6 +515,7 @@ export function apply(ctx) {
           "前端有一套设计知识库（UI设计）：每项设计带 tag、适用/不适用场景、实现提示词和可交互 demo。",
           "做前端 UI 任务（页面、组件、交互动画、加载态等）前，先调用 ui_design 的 action=\"search\" 按场景查候选（返回名称/tag/场景，不带 demo）；匹配的用 action=\"get\" 取提示词再实现；确实没有合适的设计就按自己的方案实现，不要硬套。",
           "用设计实现时：get 返回的 prompt 和 demo 是**实现依据**，不是参考资料——以 demo 为基准（必要时 includeDemo=true 取完整代码），逐条照 prompt 里的结构/尺寸/时长/颜色/交互细节实现，不要凭印象简化；产出后对照 prompt 自检一遍，漏的补上。",
+          "get 返回里可能带「相关设计」（别的设计被正文引用）——如果当前这项和你的场景对不上，按里面的名字再 get 一次确认，别只看摘要就换方案。",
           "用户明确说「以（设计名）的形式实现」「按知识库里的 XX 做」时，直接 action=\"get\"。",
           "用户让你新建/修改设计时，先 action=\"guide\" 读《设计规范》，再用 create/update 写回知识库（demoHtml 必须是完整可运行的 HTML；usage 写适用场景、caution 写不适用场景——尽量写，不是必填）。",
         ].join("\n"),
