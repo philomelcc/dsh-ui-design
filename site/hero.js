@@ -104,12 +104,17 @@
       frag.appendChild(v);
       list.push({ el: v, off: wave(x), axis: 'Y' });
     }
-    var hLine = document.createElement('i');
-    hLine.className = 'ln h';
-    hLine.style.top = (nav.offsetHeight - 1) + 'px';
-    hLine.style.transformOrigin = 'left center';
-    frag.appendChild(hLine);
-    list.push({ el: hLine, off: wave(nav.offsetHeight), axis: 'X' });
+    // 横线必须按视口坐标画同一批（34/68/102…），超出导航的部分由 .nav-grid 的 overflow:hidden 裁掉，
+    // 只画一根「导航底部」的线会和主体网格错开。
+    var maxY = Math.min(window.innerHeight, nav.offsetHeight + GAP * 2);
+    for (var y = GAP; y < maxY + GAP; y += GAP) {
+      var hLine = document.createElement('i');
+      hLine.className = 'ln h';
+      hLine.style.top = y + 'px';
+      hLine.style.transformOrigin = y % (GAP * 2) < GAP ? 'left center' : 'right center';
+      frag.appendChild(hLine);
+      list.push({ el: hLine, off: wave(y), axis: 'X' });
+    }
     box.innerHTML = '';
     box.appendChild(frag);
     STATE.navLines = list;
