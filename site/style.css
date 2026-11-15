@@ -317,13 +317,14 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 
 .nav {
   position: sticky; top: 0; z-index: 50;
-  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  /* 半透明让 fixed 网格透到顶栏；blur 保证文字可读 */
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
   -webkit-backdrop-filter: blur(12px) saturate(1.2);
   backdrop-filter: blur(12px) saturate(1.2);
   border-bottom: 1px solid transparent;
   transition: border-color 0.18s ease, background 0.18s ease;
 }
-.nav.scrolled { border-bottom-color: var(--border); background: color-mix(in srgb, var(--bg) 94%, transparent); }
+.nav.scrolled { border-bottom-color: var(--border); background: color-mix(in srgb, var(--bg) 72%, transparent); }
 .nav-inner { max-width: 1280px; margin: 0 auto; padding: 11px 28px; display: flex; align-items: center; gap: 18px; }
 .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 14.5px; white-space: nowrap; }
 .brand-mark { color: var(--brand); flex: 0 0 auto; }
@@ -369,6 +370,7 @@ main > section,
 .hero-title .fl { fill: var(--text); stroke: none; }
 
 .lede { margin: 0 0 24px; font-size: 15px; line-height: 1.78; }
+.hero .lede span.wipe { display: block; }
 .hero .lede { margin: 0 0 34px; font-size: 16.5px; color: var(--text-dim); max-width: 660px; }
 .hero-stats { display: flex; gap: 48px; margin: 0 0 36px; }
 .stat { display: flex; flex-direction: column; gap: 5px; }

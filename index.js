@@ -86,18 +86,48 @@ function missingInPrompt(spots, prompt) {
   });
 }
 
+/** demo 的关键结构：重复出现的行/项类元素——告诉 AI「元素该怎么拆」（比如段落要按行拆）。 */
+function describeStructure(html) {
+  const raw = String(html || "");
+  if (!raw) return [];
+  const counts = new Map();
+  const re = /<([a-z][a-z0-9-]*)\b[^>]*class="([^"]+)"/gi;
+  let m;
+  while ((m = re.exec(raw))) {
+    const tag = m[1].toLowerCase();
+    const classes = m[2].trim().split(/\s+/).filter(Boolean);
+    for (const c of classes) {
+      if (c.length > 20) continue;
+      const key = tag + "." + c;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  }
+  return Array.from(counts)
+    .filter(([key, n]) => n >= 2 && /line|row|item|card|step|col|cell|block|group|panel|chip|tab|node|dot|bar|opt|label/i.test(key))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([key, n]) => key + "×" + n);
+}
+
 /** 给 get 用的「demo 实现要点」几行输出；没有 demo 时返回空数组。 */
 function demoNote(design) {
   const spots = describeDemo(design.demoHtml);
-  if (!spots.length) return [];
-  const missing = missingInPrompt(spots, design.prompt);
-  const lines = ["demo 实现要点（动手前对一下；prompt 是文字描述，未必覆盖全）：" + spots.join("、")];
-  if (missing.length) {
-    lines.push(
-      `⚠ prompt 里没有提到 ${missing.join("、")}，但 demo 用了——**以 demo 为准**，需要完整代码用 includeDemo=true 取一次。`,
-    );
-  } else {
-    lines.push("demo 是可运行基准；要对照完整代码用 includeDemo=true。");
+  const structure = describeStructure(design.demoHtml);
+  if (!spots.length && !structure.length) return [];
+  const lines = [];
+  if (structure.length) {
+    lines.push("demo 结构（元素按它拆；段落/列表别整体当一块）：" + structure.join("、"));
+  }
+  if (spots.length) {
+    const missing = missingInPrompt(spots, design.prompt);
+    lines.push("demo 实现要点（动手前对一下；prompt 是文字描述，未必覆盖全）：" + spots.join("、"));
+    if (missing.length) {
+      lines.push(
+        `⚠ prompt 里没有提到 ${missing.join("、")}，但 demo 用了——**以 demo 为准**，需要完整代码用 includeDemo=true 取一次。`,
+      );
+    } else {
+      lines.push("demo 是可运行基准；要对照完整代码用 includeDemo=true。");
+    }
   }
   lines.push("");
   return lines;
