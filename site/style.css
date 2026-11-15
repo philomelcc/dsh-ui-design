@@ -317,17 +317,12 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 
 .nav {
   position: sticky; top: 0; z-index: 50;
-  /* 初始完全透明：fixed 网格要能完整透到顶栏（blur 会把 1px 网格线糊掉，所以初始不加） */
-  background: transparent;
+  /* 和页面同色的不透明遮罩：内容滚到下面会被挡住，不再和标题重叠 */
+  background: var(--bg);
   border-bottom: 1px solid transparent;
-  transition: border-color 0.18s ease, background 0.18s ease, backdrop-filter 0.18s ease;
+  transition: border-color 0.18s ease;
 }
-.nav.scrolled {
-  border-bottom-color: var(--border);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  -webkit-backdrop-filter: blur(12px) saturate(1.2);
-  backdrop-filter: blur(12px) saturate(1.2);
-}
+.nav.scrolled { border-bottom-color: var(--border); }
 .nav-inner { max-width: 1280px; margin: 0 auto; padding: 11px 28px; display: flex; align-items: center; gap: 18px; }
 .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 14.5px; white-space: nowrap; }
 .brand-mark { color: var(--brand); flex: 0 0 auto; }
@@ -350,7 +345,7 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 }
 
 /* 网格层：fixed 铺满视口——滚动时网格本身不动，只有线长在收；内容在它上面滚 */
-.weave { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.weave { position: fixed; inset: 0; z-index: 51; pointer-events: none; overflow: hidden; }  /* 51：压在导航(50)之上，网格才能覆盖顶栏；仍在主题面板(60)/弹窗(100)之下 */
 .weave .ln { position: absolute; background: color-mix(in srgb, var(--text) 10%, transparent); will-change: transform; }
 .weave .ln.h { left: 0; width: 100%; height: 1px; }
 .weave .ln.v { top: 0; height: 100%; width: 1px; }
