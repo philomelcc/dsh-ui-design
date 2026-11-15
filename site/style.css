@@ -365,7 +365,7 @@ main > section,
 /* 主标题 = 字形 path 描线 + 填色（不是普通文字），高度控制字号 */
 .hero-h1 { margin: 0 0 26px; line-height: 1; }
 .hero-title { display: block; height: clamp(40px, 5.6vw, 72px); width: auto; max-width: 100%; overflow: visible; }
-.hero-title path { fill: none; stroke: var(--text); stroke-width: 1.1; stroke-linecap: butt; stroke-linejoin: miter; }
+.hero-title path { fill: none; stroke: var(--text); stroke-width: 1.4; stroke-linecap: butt; stroke-linejoin: miter; }
 .hero-title .fl { fill: var(--text); stroke: none; }
 
 .lede { margin: 0 0 24px; font-size: 15px; line-height: 1.78; }
@@ -379,29 +379,29 @@ main > section,
 .hero-foot { margin: 26px 0 0; font-size: 12px; color: var(--text-dim); }
 .how-card code, .hero-foot code { font-size: 0.92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
-/* CTA：幽灵描边 → 实心填充（颜色全部走主题的 brand / on-brand） */
-.hero-actions .hero-cta {
+/* CTA：真按钮（brand 底 + on-brand 字，mask 从左揭示）+ 独立 SVG 描边层 */
+.cta-wrap { position: relative; display: inline-block; }
+.cta-btn {
   position: relative;
-  background: transparent;
-  border: 0;
-  color: color-mix(in srgb, var(--brand) 55%, transparent);
-  font-weight: 600;
-  transition: color 0.2s ease;
-}
-.hero-cta .cta-stroke { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
-.hero-cta .cta-stroke rect { fill: none; stroke: color-mix(in srgb, var(--brand) 38%, transparent); stroke-width: 1.5; }
-.hero-cta .cta-fill {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 100%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 13px 22px;
   border-radius: 12px;
   background: var(--brand);
-  transform: scaleX(0);
-  transform-origin: left center;
-  z-index: 0;
-  pointer-events: none;
+  color: var(--on-brand);
+  font-size: 14.5px; font-weight: 600;
+  text-decoration: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 0 var(--fill, -1%), transparent var(--fill, -1%));
+  mask-image: linear-gradient(90deg, #000 0 var(--fill, -1%), transparent var(--fill, -1%));
 }
-.hero-cta .cta-label { position: relative; z-index: 2; }
-.hero-cta.filled { color: var(--on-brand); }
-.hero-cta.filled:hover { color: var(--on-brand); }
+.cta-stroke { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.cta-stroke rect { fill: none; stroke: color-mix(in srgb, var(--brand) 32%, transparent); stroke-width: 1; }
+.cta-label {
+  position: relative;
+  display: block;
+  color: var(--on-brand);
+  -webkit-mask-image: linear-gradient(98deg, #000 0 calc(0% - 20%), transparent calc(0% + 20%));
+  mask-image: linear-gradient(98deg, #000 0 calc(0% - 20%), transparent calc(0% + 20%));
+}
 
 .wipe { will-change: -webkit-mask-image, mask-image; }
 

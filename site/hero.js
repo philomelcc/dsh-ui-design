@@ -1,14 +1,15 @@
 /**
- * Hero：设计台网格背景 + 描线填色入场，全部由滚动位置驱动。
+ * Hero：设计台网格背景 + 描线填色入场。
  *
- * 依据是库里两项设计的 **demo**（不是只看 prompt，prompt 与 demo 有出入，已反馈）：
- *   - 「描线填色入场」demo：主标题是字形 <path>，0→0.45 逐字 stroke-dashoffset 描线，
- *     0.45→0.75 逐字用 clipPath rect 宽度做「马克笔填色」；小字才用 mask 擦入；按钮边框描线+填充。
- *   - 「设计台网格背景」demo：网格层是 position:fixed（铺满视口、滚动时不动），
- *     线长随滚动进度从边缘收起；内容在网格之上滚动。
+ * 两套驱动，各管一段（2026-11-16 用户定的分工）：
+ *   - **入场**：时间驱动，一条总进度 T（0→1，3.2 秒）。标题描线→填色、段落逐块擦入、CTA 描边→填充、
+ *     网格按位置错开地织起来——全部用同一个 T，所以「网格织成」和「标题描线」天然对齐。
+ *   - **退场**：只有网格，滚动驱动（pS = hero 滚出视口的比例）。文字不参与滚动退场，随页面滚出视口即可。
  *
- * 驱动量只有一个 pS（hero 底部滚出视口的比例，0.08 平滑），所有动画都是它的函数，
- * 所以入退场可逆、和网格同拍。pS=0 时标题是「描线完成 + 填色完成」的实心字。
+ * 参数按库里「描线填色入场」的新版 prompt（2026-11-16 重写，10.4KB）：
+ *   标题描线 0→0.45（ST=0.18 逐字）、填色 0.45→0.75、段落 0.15→0.62 逐块串行、
+ *   CTA 边框 0.6→0.8、填充 0.8→1.0（--fill -1%→101%）、CTA 文字 0.72→1.0。
+ * 网格按「设计台网格背景」的 prompt：层 fixed 铺满视口，线长随 pS 从边缘收起。
  */
 (function () {
   'use strict';
@@ -23,18 +24,20 @@
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var GAP = 34;
-  var TITLE_STEP = 0.18; // 逐字错开（和 demo 的 ST 一致）
-  var WIPE_MARGIN = 0.28;
-  var WIPE_STEP = 0.045;
-  var WIPE_SPAN = 0.16;
+  var DURATION = 3200; // 入场总时长（prompt：3.2 秒）
+  var TITLE_STEP = 0.18; // 标题逐字错开 ST
+  var PARA_START = 0.15; // 段落组起点
+  var PARA_SPAN = 0.47; // 段落组总跨度 0.15→0.62
   var STATE = {
-    pS: 0,
+    hold: null, // 调试/验收：把 T 冻结在某个值
+    T: 0, // 入场（时间驱动）
+    pS: 0, // 滚动（只驱动网格退场）
     lines: [],
     title: null,
-    wipes: [],
+    blocks: [],
     cta: null,
     raf: 0,
-    lastT: 0,
+    lastTime: 0,
   };
 
   function clamp(v, lo, hi) {
@@ -43,13 +46,16 @@
   function seg(t, a, b) {
     return clamp((t - a) / (b - a), 0, 1);
   }
+  function easeOutCubic(t) {
+    var u = 1 - t;
+    return 1 - u * u * u;
+  }
 
-  /** 位置波纹：两个正弦叠加造大起伏 + 细碎；纯随机像噪点、幅度太小像方格。 */
   function wave(pos) {
     return (Math.sin(pos * 0.017 + 1.3) * 0.5 + Math.sin(pos * 0.043 + 4.1) * 0.5) * 0.16 + (Math.random() - 0.5) * 0.04;
   }
 
-  /** 网格铺满视口（fixed），滚动时网格本身不动，只有线长变化。 */
+  /** 网格层 fixed 铺满视口；滚动时网格不动，只有线长变。 */
   function buildLines() {
     var w = window.innerWidth;
     var h = window.innerHeight;
@@ -77,65 +83,70 @@
     STATE.lines = lines;
   }
 
-  /** 从 title-paths.js 的字形数据拼出「描线层 + 填色层」的 SVG（结构同 demo）。 */
+  /** 主标题：描线层 path + 填色层 use[clip-path]（顺序按 prompt：use 在下、path 在上）。 */
   function buildTitle() {
     var data = window.__HERO_TITLE;
     if (!data || !titleSvg || !data.glyphs || !data.glyphs.length) return null;
     titleSvg.setAttribute('viewBox', '0 0 ' + data.width + ' ' + data.height);
     titleSvg.setAttribute('aria-label', data.text);
+    titleSvg.setAttribute('data-text', data.text);
     while (titleSvg.firstChild) titleSvg.removeChild(titleSvg.firstChild);
 
     var defs = document.createElementNS(NS, 'defs');
-    var paths = [];
-    var rects = [];
-    var lens = [];
-    for (var i = 0; i < data.glyphs.length; i += 1) {
+    var i;
+    for (i = 0; i < data.glyphs.length; i += 1) {
       var g = data.glyphs[i];
       var cp = document.createElementNS(NS, 'clipPath');
       cp.setAttribute('id', 'tc' + i);
       var rect = document.createElementNS(NS, 'rect');
       rect.setAttribute('class', 'fr');
       rect.setAttribute('x', g.x);
-      rect.setAttribute('y', g.y);
-      rect.setAttribute('height', Math.max(1, g.h));
+      rect.setAttribute('y', g.y - 2);
+      rect.setAttribute('height', Math.max(1, g.h + 4));
       rect.setAttribute('width', 0);
       cp.appendChild(rect);
       defs.appendChild(cp);
-      rects.push(rect);
     }
     titleSvg.appendChild(defs);
 
-    for (var j = 0; j < data.glyphs.length; j += 1) {
-      var gl = data.glyphs[j];
-      var p = document.createElementNS(NS, 'path');
-      p.setAttribute('id', 'tg' + j);
-      p.setAttribute('d', gl.d);
-      titleSvg.appendChild(p);
-      paths.push(p);
-
+    // 填色层（下层）
+    var rects = [];
+    for (i = 0; i < data.glyphs.length; i += 1) {
       var use = document.createElementNS(NS, 'use');
       use.setAttribute('class', 'fl');
-      use.setAttribute('href', '#tg' + j);
-      use.setAttribute('clip-path', 'url(#tc' + j + ')');
+      use.setAttribute('href', '#tg' + i);
+      use.setAttribute('clip-path', 'url(#tc' + i + ')');
       titleSvg.appendChild(use);
+      rects.push(defs.querySelectorAll('rect')[i]);
     }
 
-    // 量周长放在插入 DOM 之后（demo 的 measure 也是这时候量）
-    for (var k = 0; k < paths.length; k += 1) {
+    // 描线层（上层）
+    var paths = [];
+    var lens = [];
+    for (i = 0; i < data.glyphs.length; i += 1) {
+      var p = document.createElementNS(NS, 'path');
+      p.setAttribute('id', 'tg' + i);
+      p.setAttribute('d', data.glyphs[i].d);
+      titleSvg.appendChild(p);
+      paths.push(p);
+    }
+    // 必须在插入文档后量周长
+    for (i = 0; i < paths.length; i += 1) {
       var L = 0;
       try {
-        L = paths[k].getTotalLength();
+        L = paths[i].getTotalLength();
       } catch (err) {
         L = 300;
       }
       lens.push(L);
-      paths[k].setAttribute('stroke-dasharray', String(L));
-      paths[k].setAttribute('stroke-dashoffset', String(L));
+      paths[i].setAttribute('stroke-dasharray', String(L));
+      paths[i].setAttribute('stroke-dashoffset', String(L));
     }
     return { paths: paths, rects: rects, lens: lens, glyphs: data.glyphs };
   }
 
-  function applyWipe(el, p) {
+  /** 整行 mask 擦入（段落/按钮文字）：pe = p*(1+2h)-h，p≥0.999 时去掉 mask。 */
+  function applyWipe(el, p, chars) {
     if (p >= 0.999) {
       if (el.__wiped !== true) {
         el.style.webkitMaskImage = 'none';
@@ -145,10 +156,10 @@
       return;
     }
     el.__wiped = false;
-    var half = 0.1;
-    var pe = p * (1 + 2 * half) - half;
-    var lo = Math.max(0, (pe - half) * 100);
-    var hi = Math.min(100, (pe + half) * 100);
+    var h = clamp(0.75 / Math.max(1, chars || 8), 0.04, 0.3);
+    var pe = p * (1 + 2 * h) - h;
+    var lo = Math.max(0, (pe - h) * 100);
+    var hi = Math.min(100, (pe + h) * 100);
     var grad = 'linear-gradient(98deg, #000 0 ' + lo.toFixed(2) + '%, transparent ' + hi.toFixed(2) + '%)';
     el.style.webkitMaskImage = grad;
     el.style.maskImage = grad;
@@ -165,10 +176,10 @@
     svg.setAttribute('width', w);
     svg.setAttribute('height', h);
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-    rect.setAttribute('x', 0.75);
-    rect.setAttribute('y', 0.75);
-    rect.setAttribute('width', Math.max(1, w - 1.5));
-    rect.setAttribute('height', Math.max(1, h - 1.5));
+    rect.setAttribute('x', 0.5);
+    rect.setAttribute('y', 0.5);
+    rect.setAttribute('width', Math.max(1, w - 1));
+    rect.setAttribute('height', Math.max(1, h - 1));
     var len = 0;
     try {
       len = rect.getTotalLength();
@@ -176,41 +187,53 @@
       len = (w + h) * 2;
     }
     rect.style.strokeDasharray = len;
-    return { rect: rect, fill: cta.querySelector('.cta-fill'), len: len };
+    return { rect: rect, label: cta.querySelector('.cta-label'), len: len };
   }
 
-  function collectWipes() {
+  /** 段落组：除标题和 CTA 之外的文字块，按 prompt 的 0.15→0.62 组内串行。 */
+  function collectBlocks() {
     var nodes = board.querySelectorAll('[data-wipe]');
     var list = [];
+    var per = PARA_SPAN / Math.max(1, nodes.length);
     for (var i = 0; i < nodes.length; i += 1) {
       var el = nodes[i];
-      var start = WIPE_MARGIN + i * WIPE_STEP;
-      list.push({ el: el, start: start, end: start + WIPE_SPAN });
+      var start = PARA_START + i * per;
+      list.push({
+        el: el,
+        start: start,
+        end: start + per * 0.85,
+        chars: (el.textContent || '').length,
+      });
     }
-    STATE.wipes = list;
+    STATE.blocks = list;
   }
 
   function render() {
+    var T = STATE.T;
+    window.__heroT = T;
+    window.__heroP = STATE.pS;
     var pS = STATE.pS;
     var fade = Math.min(1, pS / 0.15, (1 - pS) / 0.15);
 
-    // 网格：pS=0 完整、pS=1 收完；两端 fade 防残留
+    // 网格：入场织起（和标题描线同一个 0→0.45）* 滚动收起（只受 pS 影响）
+    var inP = seg(T, 0, 0.45);
     for (var i = 0; i < STATE.lines.length; i += 1) {
       var ln = STATE.lines[i];
+      var delay = clamp(0.18 + ln.off, 0, 0.46);
+      var wv = easeOutCubic(clamp((inP - delay) / (1 - delay), 0, 1));
       var lp = clamp(pS + ln.off * fade, 0, 1);
+      var scale = wv * (1 - lp);
       ln.el.style.transform =
-        ln.axis === 'X' ? 'scaleX(' + (1 - lp).toFixed(4) + ')' : 'scaleY(' + (1 - lp).toFixed(4) + ')';
+        ln.axis === 'X' ? 'scaleX(' + scale.toFixed(4) + ')' : 'scaleY(' + scale.toFixed(4) + ')';
     }
 
-    // 主标题：先退填色（0.06→0.42），再退描线（0.42→0.72），逐字错开
+    // 主标题：描线 0→0.45、填色 0.45→0.75，逐字错开 ST
     var t = STATE.title;
     if (t) {
-      var fillP = 1 - seg(pS, 0.06, 0.42);
-      var drawP = 1 - seg(pS, 0.42, 0.72);
       var n = t.glyphs.length;
       var span = 1 + (n - 1) * TITLE_STEP;
-      var tDraw = drawP * span;
-      var tFill = fillP * span;
+      var tDraw = seg(T, 0, 0.45) * span;
+      var tFill = seg(T, 0.45, 0.75) * span;
       for (var j = 0; j < n; j += 1) {
         var qi = clamp(tDraw - j * TITLE_STEP, 0, 1);
         t.paths[j].setAttribute('stroke-dashoffset', (t.lens[j] * (1 - qi)).toFixed(1));
@@ -220,21 +243,21 @@
       }
     }
 
-    // 小字：每块按自己的 pS 区间擦除（滚回来就是擦入）
-    for (var k = 0; k < STATE.wipes.length; k += 1) {
-      var wp = STATE.wipes[k];
-      applyWipe(wp.el, 1 - seg(pS, wp.start, wp.end));
+    // 段落块：mask 擦入，组内串行
+    for (var k = 0; k < STATE.blocks.length; k += 1) {
+      var b = STATE.blocks[k];
+      applyWipe(b.el, seg(T, b.start, b.end), b.chars);
     }
 
-    // CTA：填充缩回（0.30→0.45），边框描回（0.50→0.68）
+    // CTA：边框 0.6→0.8、填充 0.8→1.0（--fill -1%→101%）、文字 0.72→1.0
     var c = STATE.cta;
     if (c) {
-      var fillBtn = 1 - seg(pS, 0.3, 0.45);
-      var strokeBtn = 1 - seg(pS, 0.5, 0.68);
-      c.rect.style.strokeDashoffset = (c.len * (1 - strokeBtn)).toFixed(2);
-      c.rect.style.opacity = strokeBtn > 0.001 ? 1 : 0;
-      if (c.fill) c.fill.style.transform = 'scaleX(' + fillBtn.toFixed(4) + ')';
-      cta.classList.toggle('filled', fillBtn > 0.88);
+      var borderP = seg(T, 0.6, 0.8);
+      c.rect.style.strokeDashoffset = (c.len * (1 - borderP)).toFixed(2);
+      c.rect.style.opacity = borderP <= 0.0005 ? '0' : '1';
+      var fillP = seg(T, 0.8, 1);
+      cta.style.setProperty('--fill', (-1 + fillP * 102).toFixed(2) + '%');
+      if (c.label) applyWipe(c.label, seg(T, 0.72, 1), 4);
     }
   }
 
@@ -245,40 +268,50 @@
   }
 
   function tick(now) {
-    var dt = STATE.lastT ? Math.min(64, now - STATE.lastT) : 16;
-    STATE.lastT = now;
+    var dt = STATE.lastTime ? Math.min(64, now - STATE.lastTime) : 16;
+    STATE.lastTime = now;
+
+    if (STATE.hold !== null) {
+      STATE.T = STATE.hold;
+    } else if (STATE.T < 1) {
+      STATE.T = clamp(STATE.T + dt / DURATION, 0, 1);
+    }
+
     var pRaw = reduceMotion ? 0 : readScroll();
     var diff = pRaw - STATE.pS;
     if (Math.abs(diff) < 0.01) STATE.pS = pRaw;
     else STATE.pS += diff * 0.08;
     if (STATE.pS > 0.99) STATE.pS = 1;
     if (STATE.pS < 0.01) STATE.pS = 0;
+
     render();
-    if (Math.abs(pRaw - STATE.pS) > 0.002) {
+
+    if (STATE.T < 1 || Math.abs(pRaw - STATE.pS) > 0.002) {
       STATE.raf = requestAnimationFrame(tick);
     } else {
       STATE.raf = 0;
-      STATE.lastT = 0;
+      STATE.lastTime = 0;
     }
   }
 
   function kick() {
     if (STATE.raf) return;
-    STATE.lastT = 0;
+    STATE.lastTime = 0;
     STATE.raf = requestAnimationFrame(tick);
   }
 
   function boot() {
     buildLines();
     STATE.title = buildTitle();
-    collectWipes();
+    collectBlocks();
     STATE.cta = setupCta();
-    if (reduceMotion && STATE.title) {
-      STATE.pS = 0;
-    }
-    render();
 
-    if (reduceMotion) return;
+    if (reduceMotion) {
+      STATE.T = 1;
+      STATE.pS = 0;
+      render();
+      return;
+    }
 
     window.addEventListener('scroll', kick, { passive: true });
     window.addEventListener('resize', function () {
@@ -294,8 +327,19 @@
         kick();
       });
     }
+
     kick();
   }
+
+  /** 验收/调试入口：冻结入场进度到某个 T（传 null 恢复自动播放）。 */
+  window.__holdHeroT = function (v) {
+    STATE.hold = v === null || v === undefined ? null : clamp(Number(v), 0, 1);
+    if (STATE.hold !== null) {
+      STATE.T = STATE.hold;
+      render();
+    }
+    kick();
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

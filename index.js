@@ -46,6 +46,63 @@ function text(content) {
   return [{ type: "text", text: content }];
 }
 
+/** 从 demoHtml 抽「实现要点」：prompt 是文字描述，demo 才是权威实现，两者可能不一致。 */
+function describeDemo(html) {
+  const raw = String(html || "");
+  if (!raw) return [];
+  const has = (re) => re.test(raw);
+  const spots = [];
+  // 只抽结构/机制级的点：position:absolute、@keyframes、el.animate()、rAF 这些是通用写法，
+  // prompt 本来不必逐一提，算进来会天天误报（实测 200 项里 100+ 项误命中）。
+  const longPaths = (raw.match(/d="[^"]{200,}"/g) || []).length;
+  if (longPaths) spots.push(`长 path×${longPaths}（字形级）`);
+  if (has(/clipPath|clip-path/i)) spots.push("clipPath");
+  if (has(/stroke-dasharray|strokeDasharray/)) spots.push("stroke-dasharray 描线");
+  if (has(/getTotalLength\s*\(/)) spots.push("getTotalLength()");
+  if (has(/mask-image/)) spots.push("mask 擦入");
+  // 只认「全屏 fixed 层」（同一条 CSS 规则里同时有 position:fixed 和 inset:0）——
+  // 浮层/提示用的 fixed 是小范围实现细节，算进来会大量误报。
+  if (has(/position\s*:\s*fixed[^{}]*inset\s*:\s*0|inset\s*:\s*0[^{}]*position\s*:\s*fixed/)) {
+    spots.push("position:fixed");
+  }
+  return spots;
+}
+
+/** demo 用到、但 prompt 文字里没提的技术点——这正是「照 prompt 做会做错」的高危区。
+ *  prompt 常写中文描述（「固定在视口」「遮罩擦入」），所以中英关键词都要认。 */
+function missingInPrompt(spots, prompt) {
+  const p = String(prompt || "");
+  const checks = {
+    clipPath: /clip-?path|clippath|裁切|裁剪出/i,
+    "stroke-dasharray 描线": /dasharray|描线|虚线|轮廓线/i,
+    "getTotalLength()": /getTotalLength|周长/i,
+    "mask 擦入": /mask|遮罩|擦入/i,
+    "position:fixed": /fixed|固定在|固定定位/i,
+  };
+  return spots.filter((s) => {
+    if (/^长 path×/.test(s)) return !/\bpath\b|字形|路径/i.test(p);
+    const re = checks[s];
+    return re ? !re.test(p) : false;
+  });
+}
+
+/** 给 get 用的「demo 实现要点」几行输出；没有 demo 时返回空数组。 */
+function demoNote(design) {
+  const spots = describeDemo(design.demoHtml);
+  if (!spots.length) return [];
+  const missing = missingInPrompt(spots, design.prompt);
+  const lines = ["demo 实现要点（动手前对一下；prompt 是文字描述，未必覆盖全）：" + spots.join("、")];
+  if (missing.length) {
+    lines.push(
+      `⚠ prompt 里没有提到 ${missing.join("、")}，但 demo 用了——**以 demo 为准**，需要完整代码用 includeDemo=true 取一次。`,
+    );
+  } else {
+    lines.push("demo 是可运行基准；要对照完整代码用 includeDemo=true。");
+  }
+  lines.push("");
+  return lines;
+}
+
 function send(res, status, payload) {
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
@@ -267,6 +324,7 @@ export function apply(ctx) {
       "前端设计知识库：每项设计含名称、tag、适用/不适用场景、实现提示词（prompt）和可交互演示（demoHtml）。",
       "做前端 UI 任务（页面、组件、交互动画、加载态等）前，先 action=\"search\" 查候选（只返回名称/tag/场景，不带 demo）；匹配的用 action=\"get\" 取提示词再实现；没有合适的就自己设计，不要硬套。",
       "get 之后以 prompt 和 demo 为实现基准（demo 是可运行参考，必要时 includeDemo=true 取完整代码），逐条照做、不要凭印象简化。",
+      "get 会附带「demo 实现要点」，并标出「prompt 没提到但 demo 用了」的技术点——出现这种提示时以 demo 为准，先 includeDemo=true 看代码再动手。",
       "用户明确说「以（设计名）的形式实现」「按知识库里的 XX 做」时，直接 action=\"get\"。",
       "用户让你新建/修改设计时，先 action=\"guide\" 读《设计规范》，再用 create/update 写回（demoHtml 必须是完整可运行的 HTML）。",
     ].join(" "),
@@ -435,6 +493,7 @@ export function apply(ctx) {
           "实现提示词：",
           design.prompt,
           "",
+          ...demoNote(design),
           args.includeDemo
             ? `参考 demo（完整 HTML，可直接对照实现）：\n${design.demoHtml}`
             : `还有一份可交互 demo（${design.demoHtml.length} 字符）；需要参考代码时用 includeDemo=true 再取一次。`,
@@ -515,6 +574,7 @@ export function apply(ctx) {
           "前端有一套设计知识库（UI设计）：每项设计带 tag、适用/不适用场景、实现提示词和可交互 demo。",
           "做前端 UI 任务（页面、组件、交互动画、加载态等）前，先调用 ui_design 的 action=\"search\" 按场景查候选（返回名称/tag/场景，不带 demo）；匹配的用 action=\"get\" 取提示词再实现；确实没有合适的设计就按自己的方案实现，不要硬套。",
           "用设计实现时：get 返回的 prompt 和 demo 是**实现依据**，不是参考资料——以 demo 为基准（必要时 includeDemo=true 取完整代码），逐条照 prompt 里的结构/尺寸/时长/颜色/交互细节实现，不要凭印象简化；产出后对照 prompt 自检一遍，漏的补上。",
+          "get 会带「demo 实现要点」并标出 prompt 没写到的技术点；遇到这种提示一律以 demo 为准，先 includeDemo=true 看代码，不要只按 prompt 描述做。",
           "get 返回里可能带「相关设计」（别的设计被正文引用）——如果当前这项和你的场景对不上，按里面的名字再 get 一次确认，别只看摘要就换方案。",
           "用户明确说「以（设计名）的形式实现」「按知识库里的 XX 做」时，直接 action=\"get\"。",
           "用户让你新建/修改设计时，先 action=\"guide\" 读《设计规范》，再用 create/update 写回知识库（demoHtml 必须是完整可运行的 HTML；usage 写适用场景、caution 写不适用场景——尽量写，不是必填）。",
