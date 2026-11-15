@@ -913,7 +913,10 @@
     var nav = $('nav');
     if (nav) {
       var onScroll = function () {
-        nav.classList.toggle('scrolled', window.scrollY > 8);
+        // hero 前半段导航保持透明，让 fixed 网格完整透上来；滚过 hero 后半段再上底色保证可读
+        var heroEl = document.getElementById('hero');
+        var threshold = heroEl ? heroEl.offsetHeight * 0.55 : 8;
+        nav.classList.toggle('scrolled', window.scrollY > threshold);
       };
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();

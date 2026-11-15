@@ -1,15 +1,16 @@
 /**
- * Hero：设计台网格背景 + 描线填色入场。
+ * Hero：设计台网格背景 + 描线填色入场（按 2026-11-16 第三版 prompt 实现）。
  *
- * 两套驱动，各管一段（2026-11-16 用户定的分工）：
- *   - **入场**：时间驱动，一条总进度 T（0→1，3.2 秒）。标题描线→填色、段落逐块擦入、CTA 描边→填充、
- *     网格按位置错开地织起来——全部用同一个 T，所以「网格织成」和「标题描线」天然对齐。
- *   - **退场**：只有网格，滚动驱动（pS = hero 滚出视口的比例）。文字不参与滚动退场，随页面滚出视口即可。
+ * 两套驱动：
+ *   - **入场**：时间驱动，一条总进度 T（0→1，3.2 秒）——标题描线/填色、段落逐行擦入、按钮描边/填充/文字、
+ *     网格按位置错开织起（0→0.45，与标题描线同区间对齐）。
+ *   - **退场**：只有网格，滚动驱动（pS = hero 滚出视口的比例）。
  *
- * 参数按库里「描线填色入场」的新版 prompt（2026-11-16 重写，10.4KB）：
- *   标题描线 0→0.45（ST=0.18 逐字）、填色 0.45→0.75、段落 0.15→0.62 逐块串行、
- *   CTA 边框 0.6→0.8、填充 0.8→1.0（--fill -1%→101%）、CTA 文字 0.72→1.0。
- * 网格按「设计台网格背景」的 prompt：层 fixed 铺满视口，线长随 pS 从边缘收起。
+ * 第三版 prompt 的关键参数（和上一版的差异）：
+ *   - 填色 **0.25→0.74**，和描线**重叠**（第一字描完 0.216 后就开始涂，像边勾勒边涂）；
+ *   - 按钮**早起步**：主 0.40 起、次 +0.07、第三个 +0.14（描边 0.40→0.60 / 填充 0.60→0.80 / 文字 0.54→0.80）；
+ *   - 按钮**形态决定填充**：透明底（ghost）跳过填充，实心/半透明底必须填充；`--fill` 用 -1%→101%；
+ *   - 实心按钮填充后要藏掉描线层，否则留一圈 32% 品牌线残影。
  */
 (function () {
   'use strict';
@@ -18,24 +19,26 @@
   var board = document.getElementById('hero');
   var weave = document.getElementById('weave');
   var titleSvg = document.getElementById('hero-title');
-  var cta = document.getElementById('hero-cta');
   if (!board || !weave) return;
 
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var GAP = 34;
-  var DURATION = 3200; // 入场总时长（prompt：3.2 秒）
-  var TITLE_STEP = 0.18; // 标题逐字错开 ST
-  var PARA_START = 0.15; // 段落组起点
-  var PARA_SPAN = 0.47; // 段落组总跨度 0.15→0.62
+  var DURATION = 3200;
+  var TITLE_STEP = 0.18;
+  var TITLE_DRAW = [0, 0.45]; // 描线
+  var TITLE_FILL = [0.25, 0.74]; // 填色（和描线重叠）
+  var PARA_START = 0.15;
+  var PARA_SPAN = 0.47;
+  var BTN_STEP = 0.07;
   var STATE = {
-    hold: null, // 调试/验收：把 T 冻结在某个值
-    T: 0, // 入场（时间驱动）
-    pS: 0, // 滚动（只驱动网格退场）
+    hold: null, // 验收：把 T 冻结在某个值
+    T: 0,
+    pS: 0,
     lines: [],
     title: null,
     blocks: [],
-    cta: null,
+    buttons: [],
     raf: 0,
     lastTime: 0,
   };
@@ -50,7 +53,6 @@
     var u = 1 - t;
     return 1 - u * u * u;
   }
-
   function wave(pos) {
     return (Math.sin(pos * 0.017 + 1.3) * 0.5 + Math.sin(pos * 0.043 + 4.1) * 0.5) * 0.16 + (Math.random() - 0.5) * 0.04;
   }
@@ -83,7 +85,7 @@
     STATE.lines = lines;
   }
 
-  /** 主标题：描线层 path + 填色层 use[clip-path]（顺序按 prompt：use 在下、path 在上）。 */
+  /** 主标题：填色层 use[clip-path] 在下、描线层 path 在上。 */
   function buildTitle() {
     var data = window.__HERO_TITLE;
     if (!data || !titleSvg || !data.glyphs || !data.glyphs.length) return null;
@@ -94,33 +96,31 @@
 
     var defs = document.createElementNS(NS, 'defs');
     var i;
+    var rects = [];
     for (i = 0; i < data.glyphs.length; i += 1) {
       var g = data.glyphs[i];
       var cp = document.createElementNS(NS, 'clipPath');
       cp.setAttribute('id', 'tc' + i);
-      var rect = document.createElementNS(NS, 'rect');
-      rect.setAttribute('class', 'fr');
-      rect.setAttribute('x', g.x);
-      rect.setAttribute('y', g.y - 2);
-      rect.setAttribute('height', Math.max(1, g.h + 4));
-      rect.setAttribute('width', 0);
-      cp.appendChild(rect);
+      var r = document.createElementNS(NS, 'rect');
+      r.setAttribute('class', 'fr');
+      r.setAttribute('x', g.x - 2);
+      r.setAttribute('y', g.y - 2);
+      r.setAttribute('height', Math.max(1, g.h + 4));
+      r.setAttribute('width', 0);
+      cp.appendChild(r);
       defs.appendChild(cp);
+      rects.push(r);
     }
     titleSvg.appendChild(defs);
 
-    // 填色层（下层）
-    var rects = [];
     for (i = 0; i < data.glyphs.length; i += 1) {
       var use = document.createElementNS(NS, 'use');
       use.setAttribute('class', 'fl');
       use.setAttribute('href', '#tg' + i);
       use.setAttribute('clip-path', 'url(#tc' + i + ')');
       titleSvg.appendChild(use);
-      rects.push(defs.querySelectorAll('rect')[i]);
     }
 
-    // 描线层（上层）
     var paths = [];
     var lens = [];
     for (i = 0; i < data.glyphs.length; i += 1) {
@@ -130,7 +130,6 @@
       titleSvg.appendChild(p);
       paths.push(p);
     }
-    // 必须在插入文档后量周长
     for (i = 0; i < paths.length; i += 1) {
       var L = 0;
       try {
@@ -145,7 +144,6 @@
     return { paths: paths, rects: rects, lens: lens, glyphs: data.glyphs };
   }
 
-  /** 整行 mask 擦入（段落/按钮文字）：pe = p*(1+2h)-h，p≥0.999 时去掉 mask。 */
   function applyWipe(el, p, chars) {
     if (p >= 0.999) {
       if (el.__wiped !== true) {
@@ -165,32 +163,48 @@
     el.style.maskImage = grad;
   }
 
-  function setupCta() {
-    if (!cta) return null;
-    var rect = cta.querySelector('.cta-stroke rect');
-    var svg = cta.querySelector('.cta-stroke');
-    if (!rect || !svg) return null;
-    var w = cta.offsetWidth;
-    var h = cta.offsetHeight;
-    if (!w || !h) return null;
-    svg.setAttribute('width', w);
-    svg.setAttribute('height', h);
-    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-    rect.setAttribute('x', 0.5);
-    rect.setAttribute('y', 0.5);
-    rect.setAttribute('width', Math.max(1, w - 1));
-    rect.setAttribute('height', Math.max(1, h - 1));
-    var len = 0;
-    try {
-      len = rect.getTotalLength();
-    } catch (err) {
-      len = (w + h) * 2;
+  /** 按钮组：每个 .btn-wrap 一个 SVG 描边层；形态（data-fill）决定要不要填充。 */
+  function setupButtons() {
+    var wraps = board.querySelectorAll('.btn-wrap[data-btn]');
+    var list = [];
+    for (var i = 0; i < wraps.length; i += 1) {
+      var wrap = wraps[i];
+      var btn = wrap.querySelector('.btn-main, .btn-sub, .btn-ghost');
+      var rect = wrap.querySelector('.btn-stroke rect');
+      var svg = wrap.querySelector('.btn-stroke');
+      var label = wrap.querySelector('.btn-label');
+      if (!btn || !rect || !svg) continue;
+      var w = btn.offsetWidth;
+      var h = btn.offsetHeight;
+      if (!w || !h) continue;
+      svg.setAttribute('width', w);
+      svg.setAttribute('height', h);
+      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      rect.setAttribute('x', 0.5);
+      rect.setAttribute('y', 0.5);
+      rect.setAttribute('width', Math.max(1, w - 1));
+      rect.setAttribute('height', Math.max(1, h - 1));
+      var len = 0;
+      try {
+        len = rect.getTotalLength();
+      } catch (err) {
+        len = (w + h) * 2;
+      }
+      rect.style.strokeDasharray = len;
+      list.push({
+        btn: btn,
+        rect: rect,
+        label: label,
+        len: len,
+        delay: i * BTN_STEP,
+        fill: wrap.getAttribute('data-fill') === 'true',
+        hideStroke: wrap.getAttribute('data-hide-stroke') === 'true',
+      });
     }
-    rect.style.strokeDasharray = len;
-    return { rect: rect, label: cta.querySelector('.cta-label'), len: len };
+    STATE.buttons = list;
   }
 
-  /** 段落组：除标题和 CTA 之外的文字块，按 prompt 的 0.15→0.62 组内串行。 */
+  /** 段落组：除标题和按钮外的文字块，0.15→0.62 组内串行。 */
   function collectBlocks() {
     var nodes = board.querySelectorAll('[data-wipe]');
     var list = [];
@@ -210,12 +224,12 @@
 
   function render() {
     var T = STATE.T;
-    window.__heroT = T;
-    window.__heroP = STATE.pS;
     var pS = STATE.pS;
+    window.__heroT = T;
+    window.__heroP = pS;
     var fade = Math.min(1, pS / 0.15, (1 - pS) / 0.15);
 
-    // 网格：入场织起（和标题描线同一个 0→0.45）* 滚动收起（只受 pS 影响）
+    // 网格：入场织起（0→0.45，和标题描线对齐）* 滚动收起
     var inP = seg(T, 0, 0.45);
     for (var i = 0; i < STATE.lines.length; i += 1) {
       var ln = STATE.lines[i];
@@ -227,37 +241,42 @@
         ln.axis === 'X' ? 'scaleX(' + scale.toFixed(4) + ')' : 'scaleY(' + scale.toFixed(4) + ')';
     }
 
-    // 主标题：描线 0→0.45、填色 0.45→0.75，逐字错开 ST
+    // 主标题：描线 0→0.45、填色 0.25→0.74（重叠）
     var t = STATE.title;
     if (t) {
       var n = t.glyphs.length;
       var span = 1 + (n - 1) * TITLE_STEP;
-      var tDraw = seg(T, 0, 0.45) * span;
-      var tFill = seg(T, 0.45, 0.75) * span;
+      var tDraw = seg(T, TITLE_DRAW[0], TITLE_DRAW[1]) * span;
+      var tFill = seg(T, TITLE_FILL[0], TITLE_FILL[1]) * span;
       for (var j = 0; j < n; j += 1) {
         var qi = clamp(tDraw - j * TITLE_STEP, 0, 1);
         t.paths[j].setAttribute('stroke-dashoffset', (t.lens[j] * (1 - qi)).toFixed(1));
         t.paths[j].style.opacity = qi <= 0.0005 ? '0' : '1';
         var qf = clamp(tFill - j * TITLE_STEP, 0, 1);
-        t.rects[j].setAttribute('width', (qf * t.glyphs[j].w).toFixed(2));
+        // 兜底：填色不能早于同字的描线完成
+        qf = Math.min(qf, qi);
+        t.rects[j].setAttribute('width', (qf * (t.glyphs[j].w + 4)).toFixed(2));
       }
     }
 
-    // 段落块：mask 擦入，组内串行
+    // 段落块
     for (var k = 0; k < STATE.blocks.length; k += 1) {
       var b = STATE.blocks[k];
       applyWipe(b.el, seg(T, b.start, b.end), b.chars);
     }
 
-    // CTA：边框 0.6→0.8、填充 0.8→1.0（--fill -1%→101%）、文字 0.72→1.0
-    var c = STATE.cta;
-    if (c) {
-      var borderP = seg(T, 0.6, 0.8);
-      c.rect.style.strokeDashoffset = (c.len * (1 - borderP)).toFixed(2);
-      c.rect.style.opacity = borderP <= 0.0005 ? '0' : '1';
-      var fillP = seg(T, 0.8, 1);
-      cta.style.setProperty('--fill', (-1 + fillP * 102).toFixed(2) + '%');
-      if (c.label) applyWipe(c.label, seg(T, 0.72, 1), 4);
+    // 按钮：描边 0.40→0.60、填充 0.60→0.80、文字 0.54→0.80（各自 +delay）
+    for (var bi = 0; bi < STATE.buttons.length; bi += 1) {
+      var bu = STATE.buttons[bi];
+      var d = bu.delay;
+      var borderP = seg(T, 0.4 + d, 0.6 + d);
+      var fillP = bu.fill ? seg(T, 0.6 + d, 0.8 + d) : 1;
+      var labelP = seg(T, 0.54 + d, 0.8 + d);
+      bu.rect.style.strokeDashoffset = (bu.len * (1 - borderP)).toFixed(2);
+      // 实心按钮填充开始后藏描线，否则留一圈品牌色残影
+      bu.rect.style.opacity = bu.hideStroke && fillP > 0.001 ? '0' : borderP <= 0.0005 ? '0' : '1';
+      if (bu.fill) bu.btn.style.setProperty('--fill', (-1 + fillP * 102).toFixed(2) + '%');
+      if (bu.label) applyWipe(bu.label, labelP, (bu.label.textContent || '').length);
     }
   }
 
@@ -286,7 +305,7 @@
 
     render();
 
-    if (STATE.T < 1 || Math.abs(pRaw - STATE.pS) > 0.002) {
+    if (STATE.T < 1 || STATE.hold !== null || Math.abs(pRaw - STATE.pS) > 0.002) {
       STATE.raf = requestAnimationFrame(tick);
     } else {
       STATE.raf = 0;
@@ -304,7 +323,7 @@
     buildLines();
     STATE.title = buildTitle();
     collectBlocks();
-    STATE.cta = setupCta();
+    setupButtons();
 
     if (reduceMotion) {
       STATE.T = 1;
@@ -316,14 +335,14 @@
     window.addEventListener('scroll', kick, { passive: true });
     window.addEventListener('resize', function () {
       buildLines();
-      STATE.cta = setupCta();
+      setupButtons();
       render();
       kick();
     });
 
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () {
-        STATE.cta = setupCta();
+        setupButtons();
         kick();
       });
     }
