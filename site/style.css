@@ -35,6 +35,8 @@
 /* hidden 属性要能压过 .modal 的 display:flex */
 [hidden] { display: none !important; }
 
+html { scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar { display: none; }
 html, body {
   margin: 0;
   padding: 0;
@@ -316,8 +318,8 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 .skip:focus { left: 0; }
 
 .nav {
-  position: sticky; top: 0; z-index: 60;
-  /* 始终最上：高过视频(#how 52)和网格(51)，背景同色遮住滚过去的内容 */
+  position: sticky; top: 0; z-index: 50;
+  /* 默认压在网格(51)、视频(52)之下：顶栏网格由 weave 负责；滚到网格收完再抬到 60 */
   background: var(--bg);
   border-bottom: 1px solid transparent;
   transition: border-color 0.18s ease;
@@ -325,7 +327,6 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 .nav.scrolled { border-bottom-color: var(--border); }
 /* 网格收完后把导航抬到最上，遮住滚上来的视频/内容 */
 .nav.on-top { z-index: 60; }
-/* 顶栏网格：weave 层现在压在导航下面了，用伪元素补一层同款网格（34px 间距、10% 线色） */
 
 .nav-inner { position: relative; z-index: 1; }
 .nav-inner { max-width: 1280px; margin: 0 auto; padding: 11px 28px; display: flex; align-items: center; gap: 18px; }
