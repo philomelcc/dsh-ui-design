@@ -416,6 +416,7 @@ main > section,
 
 
 .section { padding-top: 46px; padding-bottom: 46px; }
+#how { position: relative; z-index: 52; } /* 抬到网格层(51)之上：section 自己建了层叠上下文，子元素设 z-index 没用 */
 .section-head { margin-bottom: 22px; }
 .section-head h2 { font-size: 22px; letter-spacing: -0.012em; }
 .section-sub { margin: 6px 0 0; font-size: 13px; color: var(--text-dim); }
