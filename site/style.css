@@ -429,6 +429,7 @@ main > section,
 }
 .how-demo-media {
   position: relative;
+  z-index: 52; /* 抬到网格层(51)之上，否则网格线会压在视频上 */
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
