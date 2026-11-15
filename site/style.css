@@ -46,7 +46,7 @@ html, body {
 .page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 28px 28px 80px;
+  padding: 0 28px;
 }
 
 .head {
@@ -305,3 +305,177 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
   .side { flex: 0 0 auto; width: 100%; max-height: 40%; border-left: 0; border-top: 1px solid var(--border); }
   .demo { min-height: 220px; }
 }
+
+/* ── 展示站骨架：导航 / Hero / 分区 / 入口 / 页脚（2026-11-15） ───────── */
+
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  padding: 10px 14px; border-radius: 0 0 10px 0;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+}
+.skip:focus { left: 0; }
+
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  backdrop-filter: blur(12px) saturate(1.2);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.nav.scrolled { border-bottom-color: var(--border); background: color-mix(in srgb, var(--bg) 94%, transparent); }
+.nav-inner { max-width: 1280px; margin: 0 auto; padding: 11px 28px; display: flex; align-items: center; gap: 18px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 14.5px; white-space: nowrap; }
+.brand-mark { color: var(--brand); flex: 0 0 auto; }
+.brand-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); }
+.nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.nav-links a { color: var(--text-dim); text-decoration: none; font-size: 13px; padding: 7px 11px; border-radius: 8px; transition: color 0.15s, background 0.15s; }
+.nav-links a:hover { color: var(--text); background: var(--surface-2); }
+.nav-actions { display: flex; align-items: center; gap: 8px; }
+.nav-actions .theme-trigger { min-width: 170px; }
+
+/* ── Hero：全宽设计台（网格铺满视口、颜色全部跟随主题、滚动驱动） ───────── */
+.hero {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(620px, 88vh, 960px);
+  display: flex;
+  align-items: center;
+  padding: 84px 0 72px;
+  background: var(--bg);
+}
+
+/* 网格层铺满整个 hero（包括内容两侧的空白），跟页面背景同色、只有线 */
+.weave { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.weave .ln { position: absolute; background: color-mix(in srgb, var(--text) 10%, transparent); will-change: transform; }
+.weave .ln.h { left: 0; width: 100%; height: 1px; }
+.weave .ln.v { top: 0; height: 100%; width: 1px; }
+
+.hero-inner { position: relative; z-index: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 28px; }
+.hero-content { max-width: 920px; }
+
+.eyebrow { margin: 0 0 14px; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+.hero .eyebrow { margin: 0 0 18px; color: var(--text-dim); }
+.hero h1 {
+  font-size: clamp(40px, 6.2vw, 76px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  margin: 0 0 26px;
+  color: var(--text);
+}
+.lede { margin: 0 0 24px; font-size: 15px; line-height: 1.78; }
+.hero .lede { margin: 0 0 34px; font-size: 16.5px; color: var(--text-dim); max-width: 660px; }
+.hero-stats { display: flex; gap: 48px; margin: 0 0 36px; }
+.stat { display: flex; flex-direction: column; gap: 5px; }
+.stat b { font-size: 36px; line-height: 1; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; color: var(--text); }
+.stat span { font-size: 12.5px; color: var(--text-dim); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.hero-actions .btn { padding: 13px 22px; font-size: 14.5px; text-decoration: none; display: inline-flex; align-items: center; }
+.hero-foot { margin: 26px 0 0; font-size: 12px; color: var(--text-dim); }
+.how-card code, .hero-foot code { font-size: 0.92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+/* CTA：幽灵描边 → 实心填充（颜色全部走主题的 brand / on-brand） */
+.hero-actions .hero-cta {
+  position: relative;
+  background: transparent;
+  border: 0;
+  color: color-mix(in srgb, var(--brand) 55%, transparent);
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+.hero-cta .cta-stroke { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.hero-cta .cta-stroke rect { fill: none; stroke: color-mix(in srgb, var(--brand) 38%, transparent); stroke-width: 1.5; }
+.hero-cta .cta-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 100%;
+  border-radius: 12px;
+  background: var(--brand);
+  transform: scaleX(0);
+  transform-origin: left center;
+  z-index: 0;
+  pointer-events: none;
+}
+.hero-cta .cta-label { position: relative; z-index: 2; }
+.hero-cta.filled { color: var(--on-brand); }
+.hero-cta.filled:hover { color: var(--on-brand); }
+
+.wipe { will-change: -webkit-mask-image, mask-image; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wipe { -webkit-mask-image: none !important; mask-image: none !important; }
+}
+
+
+
+.section { padding-top: 46px; padding-bottom: 46px; border-top: 1px solid var(--border); }
+.section-head { margin-bottom: 22px; }
+.section-head h2 { font-size: 22px; letter-spacing: -0.012em; }
+.section-sub { margin: 6px 0 0; font-size: 13px; color: var(--text-dim); }
+
+.how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(262px, 1fr)); gap: 16px; }
+.how-card { position: relative; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 18px 18px 16px; }
+.how-step { position: absolute; top: 15px; right: 17px; font-size: 13px; color: var(--text-dim); opacity: 0.65; }
+.how-card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: 0; }
+.how-card p { margin: 0 0 12px; font-size: 13px; line-height: 1.72; color: var(--text-dim); }
+.how-card pre { margin: 0; padding: 10px 12px; border-radius: 9px; background: var(--surface-2); overflow-x: auto; }
+.how-card pre code { font-size: 11.5px; color: var(--text); background: none; padding: 0; }
+.how-card code { word-break: break-word; }
+
+.browse-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.browse-head .search-tags { width: 360px; }
+.browse-head .section-head { margin-bottom: 0; }
+
+.link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(262px, 1fr)); gap: 14px; }
+.link-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px;
+  background: var(--surface); text-decoration: none; color: var(--text);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.link-card:hover { border-color: var(--brand); transform: translateY(-2px); }
+.link-card b { font-size: 14px; }
+.link-card span { font-size: 12.5px; line-height: 1.65; color: var(--text-dim); }
+.link-card i { margin-top: 4px; font-style: normal; font-size: 11.5px; color: var(--text-dim); opacity: 0.8; word-break: break-all; }
+
+.foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding-top: 24px; padding-bottom: 40px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-dim);
+}
+.foot .dot { opacity: 0.5; }
+
+/* 响应式：窄屏把导航折成两行、搜索占满 */
+@media (max-width: 880px) {
+  .nav-inner { padding: 10px 18px; flex-wrap: wrap; gap: 10px; }
+  .nav-links { order: 3; width: 100%; margin-left: 0; overflow-x: auto; padding-bottom: 2px; }
+  .nav-links a { white-space: nowrap; }
+  .nav-actions { margin-left: auto; }
+  .nav-actions .theme-trigger { min-width: 0; }
+  .page { padding: 0 18px; }
+  .hero { min-height: 0; padding: 56px 0 52px; }
+  .hero-inner { padding: 0 18px; }
+  .hero h1 { font-size: 34px; }
+  .hero .lede { font-size: 15px; margin-bottom: 26px; }
+  .hero-stats { gap: 26px; margin-bottom: 28px; }
+  .stat b { font-size: 26px; }
+  .browse-head .search-tags { width: 100%; }
+  .foot { padding-bottom: 30px; }
+}
+
+/* 锚点平滑滚动 + 避开固定导航 */
+html { scroll-behavior: smooth; scroll-padding-top: 78px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* 弹窗里的「相关设计」条目 */
+#m-related { display: flex; flex-direction: column; gap: 6px; }
+.related-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px;
+  text-align: left; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.related-item:hover { border-color: var(--brand); background: var(--surface-2); }
+.related-item b { font-weight: 600; }
+.related-item .related-tags { margin-left: auto; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.related-item.missing { cursor: default; opacity: 0.75; }
+.related-item.missing .related-tags { color: var(--warn); }

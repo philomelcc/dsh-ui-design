@@ -676,12 +676,94 @@
   function go(next) {
     state.page = next;
     renderCards();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 翻页后回到「浏览设计」开头，而不是整页顶部（顶部现在是 hero）
+    var browse = $('browse');
+    if (browse) {
+      var top = browse.getBoundingClientRect().top + window.scrollY - 66;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   function render() {
     renderChips();
     renderCards();
+  }
+
+  /** Hero / 导航 / 页脚上的数字：数据加载完后填一次。 */
+  function fillStats() {
+    var themeCount = state.designs.filter(function (d) {
+      return (d.tags || []).indexOf('配色方案') >= 0;
+    }).length;
+    var set = function (id, value) {
+      var el = $(id);
+      if (el) el.textContent = value;
+    };
+    set('stat-designs', state.designs.length);
+    set('stat-tags', state.tags.length);
+    set('stat-themes', themeCount);
+    set('nav-count', state.designs.length + ' 项');
+    var updatedAt = state.index && state.index.updatedAt;
+    if (updatedAt) {
+      var d = new Date(updatedAt);
+      set(
+        'foot-meta',
+        '数据更新于 ' +
+          d.getFullYear() +
+          '-' +
+          ('0' + (d.getMonth() + 1)).slice(-2) +
+          '-' +
+          ('0' + d.getDate()).slice(-2) +
+          ' ' +
+          ('0' + d.getHours()).slice(-2) +
+          ':' +
+          ('0' + d.getMinutes()).slice(-2)
+      );
+    } else {
+      set('foot-meta', '本地展示版');
+    }
+  }
+
+  /** 弹窗里的「相关设计」：正文引用到的设计，点一下直接切过去。 */
+  function renderRelated(design) {
+    var wrap = $('m-related-wrap');
+    var box = $('m-related');
+    if (!wrap || !box) return;
+    box.innerHTML = '';
+    var names = Array.isArray(design.related) ? design.related : [];
+    if (!names.length) {
+      wrap.hidden = true;
+      return;
+    }
+    names.forEach(function (name) {
+      var meta = null;
+      for (var i = 0; i < state.designs.length; i += 1) {
+        if (state.designs[i].name === name) {
+          meta = state.designs[i];
+          break;
+        }
+      }
+      var item = document.createElement(meta ? 'button' : 'div');
+      item.className = 'related-item' + (meta ? '' : ' missing');
+      if (meta) {
+        item.type = 'button';
+        item.addEventListener('click', function () {
+          openModal(meta.id);
+        });
+      }
+      var b = document.createElement('b');
+      b.textContent = name;
+      item.appendChild(b);
+      var note = document.createElement('span');
+      note.className = 'related-tags';
+      note.textContent = meta
+        ? (meta.tags || []).join(' · ')
+        : '库里还没有这项（待补）';
+      item.appendChild(note);
+      box.appendChild(item);
+    });
+    wrap.hidden = false;
   }
 
   // ---------- 弹窗 ----------
@@ -704,6 +786,7 @@
         $('m-caution').textContent = design.caution || '';
         $('m-inspiration-wrap').hidden = !design.inspiration;
         $('m-inspiration').textContent = design.inspiration || '';
+        renderRelated(design);
         $('m-prompt').textContent = design.prompt || '';
         var hint = $('m-hint');
         if (design.hint) {
@@ -823,8 +906,22 @@
       }
     });
 
+    $('copy-install').addEventListener('click', function () {
+      copy('dsh plugin --profile web add @philomelcc/dsh-ui-design', this, '已复制安装命令');
+    });
+
+    var nav = $('nav');
+    if (nav) {
+      var onScroll = function () {
+        nav.classList.toggle('scrolled', window.scrollY > 8);
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
     loadIndex()
       .then(function () {
+        fillStats();
         render();
         $('empty').hidden = true;
         return initThemePicker();
