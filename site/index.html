@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- 网格层必须是 body 的直属子元素：放在 .hero 里会被 hero 的层叠上下文困住，
+       即使 z-index 再高也盖不过导航（导航自己也有 z-index） -->
+  <div class="weave" id="weave" aria-hidden="true"></div>
+
   <a class="skip" href="#browse">跳到浏览</a>
 
   <header class="nav" id="nav">
@@ -43,7 +47,6 @@
 
   <main>
     <section class="hero" id="hero">
-      <div class="weave" id="weave" aria-hidden="true"></div>
       <div class="hero-inner">
         <div class="hero-content" id="hero-content">
           <p class="eyebrow wipe" data-wipe>DeepSeek Harness · 开源设计库</p>
