@@ -70,7 +70,9 @@
       eh.style.top = y + 'px';
       eh.style.transformOrigin = y % (GAP * 2) < GAP ? 'left center' : 'right center';
       frag.appendChild(eh);
-      lines.push({ el: eh, axis: 'X', off: wave(y) });
+      // tPos：这条线在入场顺序里的位置（横线按 y 从上往下、竖线按 x 从左往右）
+      // ——横竖各自推进、同一时刻两个方向都有线在长，才是「交织」；按数组序会变成先横后竖。
+      lines.push({ el: eh, axis: 'X', off: wave(y), tPos: y / h });
     }
     for (var x = GAP; x < w; x += GAP) {
       var ev = document.createElement('i');
@@ -78,7 +80,7 @@
       ev.style.left = x + 'px';
       ev.style.transformOrigin = x % (GAP * 2) < GAP ? 'center top' : 'center bottom';
       frag.appendChild(ev);
-      lines.push({ el: ev, axis: 'Y', off: wave(x) });
+      lines.push({ el: ev, axis: 'Y', off: wave(x), tPos: x / w });
     }
     weave.innerHTML = '';
     weave.appendChild(frag);
@@ -229,17 +231,15 @@
     window.__heroP = pS;
     var fade = Math.min(1, pS / 0.15, (1 - pS) / 0.15);
 
-    // 网格：入场必须和标题「逐字」同拍——网格也逐条完成，且第一条/最后一条的完成时刻
-    // 与标题第一个字/最后一个字一致（标题都在 T=0.128 与 0.45 收尾，用同一个 span 推）。
-    // 之前是「所有线同时织 + easeOut」，T=0.18 时网格已 40%、标题才描 3/15 字，完全没对齐。
+    // 网格：入场和标题逐字同拍——首末时刻用标题的 span 推，但按「位置」穿插（横 y / 竖 x），
+    // 不按数组序（否则会变成先横后竖）。T 越小只有 tPos 小的线在长，横竖同时推进。
     var inP = seg(T, 0, 0.45);
-    var lineN = STATE.lines.length;
-    var STG = lineN > 1 ? 2.52 / (lineN - 1) : 0; // 2.52 = 标题 (n-1)*ST
-    var spanG = 1 + (lineN - 1) * STG;
-    var tGrid = inP * spanG;
-    for (var i = 0; i < lineN; i += 1) {
+    var glyphN = STATE.title ? STATE.title.glyphs.length : 7;
+    var span = 1 + (glyphN - 1) * TITLE_STEP;
+    var tGrid = inP * span;
+    for (var i = 0; i < STATE.lines.length; i += 1) {
       var ln = STATE.lines[i];
-      var wv = clamp(tGrid - i * STG, 0, 1);
+      var wv = clamp(tGrid - ln.tPos * (span - 1), 0, 1);
       var lp = clamp(pS + ln.off * fade, 0, 1);
       var scale = wv * (1 - lp);
       ln.el.style.transform =
