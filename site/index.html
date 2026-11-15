@@ -82,27 +82,23 @@
     <section class="section page" id="how">
       <div class="section-head">
         <h2>怎么用</h2>
-        <p class="section-sub">三种用法，按你的角色挑一条。</p>
+        <p class="section-sub">两条路：装进 dsh，让它做前端任务前自己会用；或者不装，复制提示词粘给任何 AI。</p>
       </div>
-      <div class="how-grid">
-        <article class="how-card">
-          <span class="how-step">①</span>
-          <h3>给 AI 用</h3>
-          <p>插件注册了 <code>ui_design</code> 工具。做前端 UI 任务前先 <code>search</code>，匹配再 <code>get</code> 拿提示词和 demo——搜不到合适的就自己设计，不硬套。</p>
-          <pre><code>ui_design search "列表转圈 loading"</code></pre>
-        </article>
-        <article class="how-card">
-          <span class="how-step">②</span>
-          <h3>给人用</h3>
-          <p>页面里按 tag 筛、按名字搜，点卡片看可交互 demo。右边「实现提示词」一键复制，粘给任何 AI 都能按同一套设计实现。</p>
-          <pre><code>点卡片 → 复制提示词 → 粘给 AI</code></pre>
-        </article>
-        <article class="how-card">
-          <span class="how-step">③</span>
+      <div class="how-demo">
+        <div class="how-demo-media" id="install-demo">
+          <video src="assets/install-demo.mp4" autoplay muted loop playsinline aria-label="在 dsh 里安装 UI 设计知识库的演示：网页复制命令、粘进 dsh 对话框、dsh 自动装好"></video>
+        </div>
+        <div class="how-demo-text">
           <h3>装进 dsh</h3>
-          <p>装好后重启一次 dsh web，工作台第二行会出现 tab「UI设计」；没装工作台就装在系统栏。</p>
+          <p>装好后 <code>ui_design</code> 工具就注册进了 dsh：AI 做前端 UI 任务前先按场景搜，匹配到就照着实现；没有合适的再自己设计，不硬套。</p>
           <pre><code>dsh plugin --profile web add @philomelcc/dsh-ui-design</code></pre>
-        </article>
+          <p class="how-demo-note">装完重启一次 dsh web 生效。也可以点上面的「复制安装命令」，粘到 dsh 对话框里让它自己装。</p>
+        </div>
+      </div>
+      <div class="how-alt">
+        <p class="how-alt-hint">不想用 dsh？</p>
+        <p>这套库本来就是网页。按 tag 或名字找到合适的设计，点开看可交互 demo，点「复制提示词」粘给任何 AI（Claude、ChatGPT、Cursor 都行）——它就能按同一套设计实现。</p>
+        <pre><code>浏览设计 → 点卡片 → 复制提示词 → 粘给任何 AI</code></pre>
       </div>
     </section>
 
