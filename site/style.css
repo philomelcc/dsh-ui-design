@@ -324,15 +324,7 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 }
 .nav.scrolled { border-bottom-color: var(--border); }
 /* 顶栏网格：weave 层现在压在导航下面了，用伪元素补一层同款网格（34px 间距、10% 线色） */
-.nav::after {
-  content: '';
-  position: absolute; inset: 0;
-  pointer-events: none;
-  opacity: var(--nav-grid, 1); /* 跟随网格收起：hero.js 按滚动进度写这个变量 */
-  background-image:
-    repeating-linear-gradient(90deg, transparent 0 33px, color-mix(in srgb, var(--text) 10%, transparent) 33px 34px),
-    repeating-linear-gradient(0deg, transparent 0 33px, color-mix(in srgb, var(--text) 10%, transparent) 33px 34px);
-}
+
 .nav-inner { position: relative; z-index: 1; }
 .nav-inner { max-width: 1280px; margin: 0 auto; padding: 11px 28px; display: flex; align-items: center; gap: 18px; }
 .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 14.5px; white-space: nowrap; }
@@ -357,9 +349,10 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 
 /* 网格层：fixed 铺满视口——滚动时网格本身不动，只有线长在收；内容在它上面滚 */
 .weave { position: fixed; inset: 0; z-index: 51; pointer-events: none; overflow: hidden; }  /* 51：压在导航(50)之上，网格才能覆盖顶栏；仍在主题面板(60)/弹窗(100)之下 */
-.weave .ln { position: absolute; background: color-mix(in srgb, var(--text) 10%, transparent); will-change: transform; }
-.weave .ln.h { left: 0; width: 100%; height: 1px; }
-.weave .ln.v { top: 0; height: 100%; width: 1px; }
+.weave .ln, .nav-grid .ln { position: absolute; background: color-mix(in srgb, var(--text) 10%, transparent); will-change: transform; }
+.weave .ln.h, .nav-grid .ln.h { left: 0; width: 100%; height: 1px; }
+.weave .ln.v, .nav-grid .ln.v { top: 0; height: 100%; width: 1px; }
+.nav-grid { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 
 /* 内容层盖在网格之上（fixed 的 z-index:0 会压在 static 上面，必须显式抬起来） */
 .hero-inner,

@@ -87,6 +87,34 @@
     STATE.lines = lines;
   }
 
+  /** 导航栏里的网格线：和 .weave 同一套 off 波纹 + pS 算法，只是限制在顶栏高度内。
+   *  导航 z-index 最高会盖住 weave，所以顶栏网格必须自己画一份，才能和主体网格同步收起。 */
+  function buildNavGrid() {
+    var box = document.getElementById('nav-grid');
+    var nav = document.getElementById('nav');
+    if (!box || !nav) return;
+    var w = window.innerWidth;
+    var list = [];
+    var frag = document.createDocumentFragment();
+    for (var x = GAP; x < w; x += GAP) {
+      var v = document.createElement('i');
+      v.className = 'ln v';
+      v.style.left = x + 'px';
+      v.style.transformOrigin = x % (GAP * 2) < GAP ? 'center top' : 'center bottom';
+      frag.appendChild(v);
+      list.push({ el: v, off: wave(x), axis: 'Y' });
+    }
+    var hLine = document.createElement('i');
+    hLine.className = 'ln h';
+    hLine.style.top = (nav.offsetHeight - 1) + 'px';
+    hLine.style.transformOrigin = 'left center';
+    frag.appendChild(hLine);
+    list.push({ el: hLine, off: wave(nav.offsetHeight), axis: 'X' });
+    box.innerHTML = '';
+    box.appendChild(frag);
+    STATE.navLines = list;
+  }
+
   /** 主标题：填色层 use[clip-path] 在下、描线层 path 在上。 */
   function buildTitle() {
     var data = window.__HERO_TITLE;
@@ -300,6 +328,13 @@
         ln.axis === 'X' ? 'scaleX(' + scale.toFixed(4) + ')' : 'scaleY(' + scale.toFixed(4) + ')';
     }
 
+    // 顶栏网格：和主体网格用同一套 off + pS，线一根根缩（不是整体淡出）
+    for (var ni = 0; ni < (STATE.navLines ? STATE.navLines.length : 0); ni += 1) {
+      var nl = STATE.navLines[ni];
+      var nlp = clamp(pS + nl.off * fade, 0, 1);
+      nl.el.style.transform = nl.axis === 'X' ? 'scaleX(' + (1 - nlp).toFixed(4) + ')' : 'scaleY(' + (1 - nlp).toFixed(4) + ')';
+    }
+
     // 主标题：描线 0→0.45、填色 0.25→0.74（重叠）
     var t = STATE.title;
     if (t) {
@@ -380,6 +415,7 @@
 
   function boot() {
     buildLines();
+    buildNavGrid();
     STATE.title = buildTitle();
     collectBlocks();
     setupButtons();
@@ -395,6 +431,7 @@
     window.addEventListener('scroll', kick, { passive: true });
     window.addEventListener('resize', function () {
       buildLines();
+      buildNavGrid();
       setupButtons();
       render();
       kick();
