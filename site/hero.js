@@ -39,6 +39,7 @@
     title: null,
     blocks: [],
     buttons: [],
+    nav: null,
     raf: 0,
     lastTime: 0,
   };
@@ -85,39 +86,6 @@
     weave.innerHTML = '';
     weave.appendChild(frag);
     STATE.lines = lines;
-  }
-
-  /** 导航栏里的网格线：和 .weave 同一套 off 波纹 + pS 算法，只是限制在顶栏高度内。
-   *  导航 z-index 最高会盖住 weave，所以顶栏网格必须自己画一份，才能和主体网格同步收起。 */
-  function buildNavGrid() {
-    var box = document.getElementById('nav-grid');
-    var nav = document.getElementById('nav');
-    if (!box || !nav) return;
-    var w = window.innerWidth;
-    var list = [];
-    var frag = document.createDocumentFragment();
-    for (var x = GAP; x < w; x += GAP) {
-      var v = document.createElement('i');
-      v.className = 'ln v';
-      v.style.left = x + 'px';
-      v.style.transformOrigin = x % (GAP * 2) < GAP ? 'center top' : 'center bottom';
-      frag.appendChild(v);
-      list.push({ el: v, off: wave(x), axis: 'Y' });
-    }
-    // 横线必须按视口坐标画同一批（34/68/102…），超出导航的部分由 .nav-grid 的 overflow:hidden 裁掉，
-    // 只画一根「导航底部」的线会和主体网格错开。
-    var maxY = Math.min(window.innerHeight, nav.offsetHeight + GAP * 2);
-    for (var y = GAP; y < maxY + GAP; y += GAP) {
-      var hLine = document.createElement('i');
-      hLine.className = 'ln h';
-      hLine.style.top = y + 'px';
-      hLine.style.transformOrigin = y % (GAP * 2) < GAP ? 'left center' : 'right center';
-      frag.appendChild(hLine);
-      list.push({ el: hLine, off: wave(y), axis: 'X' });
-    }
-    box.innerHTML = '';
-    box.appendChild(frag);
-    STATE.navLines = list;
   }
 
   /** 主标题：填色层 use[clip-path] 在下、描线层 path 在上。 */
@@ -317,6 +285,9 @@
     window.__heroT = T;
     window.__heroP = pS;
     var fade = Math.min(1, pS / 0.15, (1 - pS) / 0.15);
+    // 层级策略：网格没收回时导航压在最下面（weave 负责顶栏网格、视频盖网格）；
+    // 网格基本收完后把导航抬到最上，遮住滚上来的内容。
+    if (STATE.nav) STATE.nav.classList.toggle('on-top', pS > 0.86);
     // 顶栏伪元素网格跟着一起收（weave 被导航压住了，否则顶栏网格永远不消失）
     document.documentElement.style.setProperty('--nav-grid', clamp(1 - pS * 1.15, 0, 1).toFixed(3));
 
@@ -331,13 +302,6 @@
       var scale = wv * (1 - lp);
       ln.el.style.transform =
         ln.axis === 'X' ? 'scaleX(' + scale.toFixed(4) + ')' : 'scaleY(' + scale.toFixed(4) + ')';
-    }
-
-    // 顶栏网格：和主体网格用同一套 off + pS，线一根根缩（不是整体淡出）
-    for (var ni = 0; ni < (STATE.navLines ? STATE.navLines.length : 0); ni += 1) {
-      var nl = STATE.navLines[ni];
-      var nlp = clamp(pS + nl.off * fade, 0, 1);
-      nl.el.style.transform = nl.axis === 'X' ? 'scaleX(' + (1 - nlp).toFixed(4) + ')' : 'scaleY(' + (1 - nlp).toFixed(4) + ')';
     }
 
     // 主标题：描线 0→0.45、填色 0.25→0.74（重叠）
@@ -419,8 +383,8 @@
   }
 
   function boot() {
+    STATE.nav = document.getElementById('nav');
     buildLines();
-    buildNavGrid();
     STATE.title = buildTitle();
     collectBlocks();
     setupButtons();
@@ -436,7 +400,6 @@
     window.addEventListener('scroll', kick, { passive: true });
     window.addEventListener('resize', function () {
       buildLines();
-      buildNavGrid();
       setupButtons();
       render();
       kick();
