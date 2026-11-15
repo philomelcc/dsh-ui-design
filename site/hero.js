@@ -206,49 +206,10 @@
     STATE.buttons = list;
   }
 
-  /** 磁吸主按钮（位移≤8px、文字跟 0.55 倍）+ 三个按钮的点击反馈（按下回弹 + 涟漪）。 */
-  function setupMagnetic() {
+  /** 三个按钮的点击反馈：按下回弹 + 从点击点扩散的涟漪。 */
+  function setupButtonFeedback() {
     var stage = board.querySelector('.hero-actions');
     if (!stage) return;
-    var magWrap = stage.querySelector('[data-magnetic]');
-    var main = magWrap && magWrap.querySelector('.btn-main');
-    var label = main && main.querySelector('.btn-label');
-    var MAX = 8;
-    var RADIUS = 170;
-    var cur = { tx: 0, ty: 0 };
-    var pressed = false;
-
-    function applyMain() {
-      if (!main) return;
-      main.style.transform =
-        'translate(' + cur.tx.toFixed(2) + 'px,' + cur.ty.toFixed(2) + 'px) scale(' + (pressed ? 0.96 : 1) + ')';
-      if (label) {
-        label.style.transform =
-          'translate(' + (cur.tx * 0.55).toFixed(2) + 'px,' + (cur.ty * 0.55).toFixed(2) + 'px)';
-      }
-    }
-
-    function onMove(e) {
-      if (!main || STATE.T < 0.99) return; // 入场没结束不做磁吸，避免和描边动画错位
-      var r = main.getBoundingClientRect();
-      var dx = e.clientX - (r.left + r.width / 2);
-      var dy = e.clientY - (r.top + r.height / 2);
-      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      var f = Math.max(0, 1 - dist / RADIUS);
-      cur.tx = f > 0 ? (dx / dist) * MAX * f : 0;
-      cur.ty = f > 0 ? (dy / dist) * MAX * f : 0;
-      main.style.transition = 'transform 0.18s ease-out';
-      applyMain();
-    }
-
-    function onLeave() {
-      cur.tx = 0;
-      cur.ty = 0;
-      if (main) {
-        main.style.transition = 'transform 0.5s cubic-bezier(.34,1.56,.64,1)';
-        applyMain();
-      }
-    }
 
     function spawnRipple(btn, clientX, clientY) {
       var r = btn.getBoundingClientRect();
@@ -265,39 +226,19 @@
       }, 520);
     }
 
-    stage.addEventListener('pointermove', onMove);
-    stage.addEventListener('pointerleave', onLeave);
-
     stage.addEventListener('pointerdown', function (e) {
       var btn = e.target.closest('.btn-main, .btn-sub, .btn-ghost');
       if (!btn) return;
       spawnRipple(btn, e.clientX, e.clientY);
-      if (btn === main) {
-        pressed = true;
-        main.style.transition = 'transform 0.1s ease-out';
-        applyMain();
-      } else {
-        btn.classList.add('pressed');
-      }
+      btn.classList.add('pressed');
     });
 
     function release() {
-      pressed = false;
-      if (main) {
-        main.style.transition = 'transform 0.3s cubic-bezier(.34,1.56,.64,1)';
-        applyMain();
-      }
       var list = stage.querySelectorAll('.pressed');
       for (var i = 0; i < list.length; i += 1) list[i].classList.remove('pressed');
     }
     window.addEventListener('pointerup', release);
     window.addEventListener('pointercancel', release);
-
-    if (reduceMotion) {
-      stage.removeEventListener('pointermove', onMove);
-      stage.removeEventListener('pointerleave', onLeave);
-    }
-    applyMain();
   }
   /** 段落组：除标题和按钮外的文字块，0.15→0.62 组内串行。 */
   function collectBlocks() {
@@ -420,7 +361,7 @@
     STATE.title = buildTitle();
     collectBlocks();
     setupButtons();
-    setupMagnetic();
+    setupButtonFeedback();
 
     if (reduceMotion) {
       STATE.T = 1;
