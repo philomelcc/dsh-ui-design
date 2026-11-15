@@ -316,13 +316,23 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
 .skip:focus { left: 0; }
 
 .nav {
-  position: sticky; top: 0; z-index: 50;
-  /* 和页面同色的不透明遮罩：内容滚到下面会被挡住，不再和标题重叠 */
+  position: sticky; top: 0; z-index: 60;
+  /* 始终最上：高过视频(#how 52)和网格(51)，背景同色遮住滚过去的内容 */
   background: var(--bg);
   border-bottom: 1px solid transparent;
   transition: border-color 0.18s ease;
 }
 .nav.scrolled { border-bottom-color: var(--border); }
+/* 顶栏网格：weave 层现在压在导航下面了，用伪元素补一层同款网格（34px 间距、10% 线色） */
+.nav::after {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 33px, color-mix(in srgb, var(--text) 10%, transparent) 33px 34px),
+    repeating-linear-gradient(0deg, transparent 0 33px, color-mix(in srgb, var(--text) 10%, transparent) 33px 34px);
+}
+.nav-inner { position: relative; z-index: 1; }
 .nav-inner { max-width: 1280px; margin: 0 auto; padding: 11px 28px; display: flex; align-items: center; gap: 18px; }
 .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 14.5px; white-space: nowrap; }
 .brand-mark { color: var(--brand); flex: 0 0 auto; }
