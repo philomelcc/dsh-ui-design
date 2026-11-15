@@ -229,12 +229,17 @@
     window.__heroP = pS;
     var fade = Math.min(1, pS / 0.15, (1 - pS) / 0.15);
 
-    // 网格：入场织起（0→0.45，和标题描线对齐）* 滚动收起
+    // 网格：入场必须和标题「逐字」同拍——网格也逐条完成，且第一条/最后一条的完成时刻
+    // 与标题第一个字/最后一个字一致（标题都在 T=0.128 与 0.45 收尾，用同一个 span 推）。
+    // 之前是「所有线同时织 + easeOut」，T=0.18 时网格已 40%、标题才描 3/15 字，完全没对齐。
     var inP = seg(T, 0, 0.45);
-    for (var i = 0; i < STATE.lines.length; i += 1) {
+    var lineN = STATE.lines.length;
+    var STG = lineN > 1 ? 2.52 / (lineN - 1) : 0; // 2.52 = 标题 (n-1)*ST
+    var spanG = 1 + (lineN - 1) * STG;
+    var tGrid = inP * spanG;
+    for (var i = 0; i < lineN; i += 1) {
       var ln = STATE.lines[i];
-      var delay = clamp(0.18 + ln.off, 0, 0.46);
-      var wv = easeOutCubic(clamp((inP - delay) / (1 - delay), 0, 1));
+      var wv = clamp(tGrid - i * STG, 0, 1);
       var lp = clamp(pS + ln.off * fade, 0, 1);
       var scale = wv * (1 - lp);
       ln.el.style.transform =
