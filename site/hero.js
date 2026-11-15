@@ -24,7 +24,7 @@
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var GAP = 34;
-  var DURATION = 3200;
+  var DURATION = 2200; // 总时长（prompt 标准是 3.2s，展示站用 2.2s 更利落）
   var TITLE_STEP = 0.18;
   var TITLE_DRAW = [0, 0.45]; // 描线
   var TITLE_FILL = [0.25, 0.74]; // 填色（和描线重叠）
