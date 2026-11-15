@@ -384,6 +384,7 @@ main > section,
 .btn-wrap { position: relative; display: inline-flex; }
 .btn-main, .btn-sub, .btn-ghost {
   position: relative;
+  overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   padding: 13px 22px;
   border: 0; border-radius: 12px;
@@ -486,3 +487,28 @@ html { scroll-behavior: smooth; scroll-padding-top: 78px; }
 .related-item .related-tags { margin-left: auto; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 .related-item.missing { cursor: default; opacity: 0.75; }
 .related-item.missing .related-tags { color: var(--warn); }
+
+/* ── 按钮点击反馈：按下回弹 + 点内涟漪（磁吸位移由 JS 单独写，两者合并） ───── */
+.btn-main, .btn-sub, .btn-ghost { overflow: hidden; }
+.click-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--brand) 30%, transparent);
+  transform: scale(0);
+  opacity: 0.9;
+  animation: ripple-out 0.5s ease-out forwards;
+  z-index: 3;
+}
+/* 主按钮底本身就是 brand 色，涟漪改用反色，否则看不见 */
+.btn-main .click-ripple { background: color-mix(in srgb, var(--on-brand) 32%, transparent); }
+@keyframes ripple-out {
+  to { transform: scale(1); opacity: 0; }
+}
+/* 非磁吸按钮按下时用 class；磁吸按钮的 scale 由 hero.js 合并进 transform */
+.btn-sub.pressed, .btn-ghost.pressed { transform: scale(0.96); }
+.btn-sub, .btn-ghost { transition: transform 0.16s cubic-bezier(.34,1.56,.64,1); }
+@media (prefers-reduced-motion: reduce) {
+  .click-ripple { animation: none; opacity: 0; }
+  .btn-sub, .btn-ghost { transition: none; }
+}
