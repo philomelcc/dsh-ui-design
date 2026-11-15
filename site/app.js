@@ -3,6 +3,9 @@
   'use strict';
 
   var PAGE_SIZE = 24;
+  // 主页是「精选」模式：没有搜索框 → 只渲染 9 个 + 不做筛选/分页
+  var SIMPLE = !document.getElementById('search');
+  if (SIMPLE) PAGE_SIZE = 9;
   var TOKEN_MAP = {
     bg: '--bg',
     surface: '--surface',
@@ -443,6 +446,7 @@
 
   function renderChips() {
     var wrap = $('chips');
+    if (!wrap) return;
     wrap.innerHTML = '';
     var chips = [{ tag: 'all', count: state.designs.length }].concat(state.tags);
     chips.forEach(function (item) {
@@ -471,9 +475,10 @@
     if (state.page > totalPages) state.page = totalPages;
     var slice = items.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
 
-    $('empty').hidden = slice.length > 0;
+    var emptyEl = $('empty');
+    if (emptyEl) emptyEl.hidden = slice.length > 0;
     if (!slice.length) {
-      $('empty').textContent =
+      if (emptyEl) emptyEl.textContent =
         state.query || state.tagWords.length || state.tag !== 'all' ? '没有匹配的设计。' : '还没有设计。';
     }
 
@@ -638,6 +643,7 @@
 
   function renderPager(page, totalPages, total) {
     var wrap = pagerEl();
+    if (!wrap) return;
     wrap.innerHTML = '';
     if (total <= PAGE_SIZE) return;
     var nav = document.createElement('nav');
@@ -854,12 +860,12 @@
 
   // ---------- 初始化 ----------
   function boot() {
-    $('search').addEventListener('input', function (e) {
+    if (!SIMPLE) $('search').addEventListener('input', function (e) {
       state.query = e.target.value.trim();
       state.page = 1;
       render();
     });
-    $('search').addEventListener('keydown', function (e) {
+    if (!SIMPLE) $('search').addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ',' || e.key === '，') {
         e.preventDefault();
         addSearchTag($('search').value);
@@ -906,7 +912,8 @@
       }
     });
 
-    $('copy-install').addEventListener('click', function () {
+    var ci = $('copy-install');
+    if (ci) ci.addEventListener('click', function () {
       copy('dsh plugin --profile web add @philomelcc/dsh-ui-design', this, '已复制安装命令');
     });
 
@@ -926,7 +933,8 @@
       .then(function () {
         fillStats();
         render();
-        $('empty').hidden = true;
+        var e2 = $('empty');
+        if (e2) e2.hidden = true;
         return initThemePicker();
       })
       .catch(function (err) {

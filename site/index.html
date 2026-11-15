@@ -91,14 +91,13 @@
         <div class="how-demo-text">
           <h3>装进 dsh</h3>
           <p>装好后 <code>ui_design</code> 工具就注册进了 dsh：AI 做前端 UI 任务前先按场景搜，匹配到就照着实现；没有合适的再自己设计，不硬套。</p>
-          <pre><code>dsh plugin --profile web add @philomelcc/dsh-ui-design</code></pre>
+          <pre class="term"><code>dsh plugin --profile web add @philomelcc/dsh-ui-design</code></pre>
           <p class="how-demo-note">装完重启一次 dsh web 生效。也可以点上面的「复制安装命令」，粘到 dsh 对话框里让它自己装。</p>
         </div>
       </div>
       <div class="how-alt">
         <p class="how-alt-hint">不想用 dsh？</p>
         <p>这套库本来就是网页。按 tag 或名字找到合适的设计，点开看可交互 demo，点「复制提示词」粘给任何 AI（Claude、ChatGPT、Cursor 都行）——它就能按同一套设计实现。</p>
-        <pre><code>浏览设计 → 点卡片 → 复制提示词 → 粘给任何 AI</code></pre>
       </div>
     </section>
 
@@ -108,18 +107,10 @@
           <h2>浏览设计</h2>
           <p class="section-sub" id="sub">加载中…</p>
         </div>
-        <div class="search-tags" id="search-tags" role="group" aria-label="搜索条件">
-          <input id="search" class="tag-input" placeholder="搜索设计名 / tag / 场景… 回车固定标签" aria-label="搜索设计" autocomplete="off" autocapitalize="off" spellcheck="false">
-        </div>
+        <a class="browse-all" href="browse.html">浏览全部 202 项 →</a>
       </div>
 
-      <nav class="chips" id="chips" aria-label="标签筛选"></nav>
-
-      <p class="note">点开卡片看演示和适用场景；复制「实现提示词」粘给任何 AI，它就能按同一套设计实现。每项都标了「适用 / 不适用」，用之前先对一下场景——没有合适的就别硬套。</p>
-
       <main id="grid" class="grid" aria-live="polite"></main>
-      <div class="pager-wrap" id="pager"></div>
-      <div class="empty" id="empty" hidden></div>
     </section>
 
     <section class="section page" id="links">
