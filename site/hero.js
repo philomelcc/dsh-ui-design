@@ -70,9 +70,8 @@
       eh.style.top = y + 'px';
       eh.style.transformOrigin = y % (GAP * 2) < GAP ? 'left center' : 'right center';
       frag.appendChild(eh);
-      // tPos：这条线在入场顺序里的位置（横线按 y 从上往下、竖线按 x 从左往右）
-      // ——横竖各自推进、同一时刻两个方向都有线在长，才是「交织」；按数组序会变成先横后竖。
-      lines.push({ el: eh, axis: 'X', off: wave(y), tPos: y / h });
+      var offH = wave(y);
+      lines.push({ el: eh, axis: 'X', off: offH, offN: (offH + 0.18) / 0.36 });
     }
     for (var x = GAP; x < w; x += GAP) {
       var ev = document.createElement('i');
@@ -80,7 +79,8 @@
       ev.style.left = x + 'px';
       ev.style.transformOrigin = x % (GAP * 2) < GAP ? 'center top' : 'center bottom';
       frag.appendChild(ev);
-      lines.push({ el: ev, axis: 'Y', off: wave(x), tPos: x / w });
+      var offV = wave(x);
+      lines.push({ el: ev, axis: 'Y', off: offV, offN: (offV + 0.18) / 0.36 });
     }
     weave.innerHTML = '';
     weave.appendChild(frag);
@@ -231,15 +231,13 @@
     window.__heroP = pS;
     var fade = Math.min(1, pS / 0.15, (1 - pS) / 0.15);
 
-    // 网格：入场和标题逐字同拍——首末时刻用标题的 span 推，但按「位置」穿插（横 y / 竖 x），
-    // 不按数组序（否则会变成先横后竖）。T 越小只有 tPos 小的线在长，横竖同时推进。
-    var inP = seg(T, 0, 0.45);
-    var glyphN = STATE.title ? STATE.title.glyphs.length : 7;
-    var span = 1 + (glyphN - 1) * TITLE_STEP;
-    var tGrid = inP * span;
+    // 网格入场：全程 T 0→1（慢、连续、不停住），用 span 拉伸做波纹错开——
+    // 这样 T=0 时全部是 0、T=1 时全部精确到 1（之前把 off 直接加到进度上，
+    // 前段会卡在 0.16 不动、末端负 off 的线永远到不了 1）。
+    var GRID_ST = 0.25; // 相邻线之间的错开量
     for (var i = 0; i < STATE.lines.length; i += 1) {
       var ln = STATE.lines[i];
-      var wv = clamp(tGrid - ln.tPos * (span - 1), 0, 1);
+      var wv = clamp(T * (1 + GRID_ST) - ln.offN * GRID_ST, 0, 1);
       var lp = clamp(pS + ln.off * fade, 0, 1);
       var scale = wv * (1 - lp);
       ln.el.style.transform =
