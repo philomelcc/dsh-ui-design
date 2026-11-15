@@ -328,6 +328,7 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; color: var(--text
   content: '';
   position: absolute; inset: 0;
   pointer-events: none;
+  opacity: var(--nav-grid, 1); /* 跟随网格收起：hero.js 按滚动进度写这个变量 */
   background-image:
     repeating-linear-gradient(90deg, transparent 0 33px, color-mix(in srgb, var(--text) 10%, transparent) 33px 34px),
     repeating-linear-gradient(0deg, transparent 0 33px, color-mix(in srgb, var(--text) 10%, transparent) 33px 34px);

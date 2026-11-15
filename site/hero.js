@@ -284,6 +284,8 @@
     window.__heroT = T;
     window.__heroP = pS;
     var fade = Math.min(1, pS / 0.15, (1 - pS) / 0.15);
+    // 顶栏伪元素网格跟着一起收（weave 被导航压住了，否则顶栏网格永远不消失）
+    document.documentElement.style.setProperty('--nav-grid', clamp(1 - pS * 1.15, 0, 1).toFixed(3));
 
     // 网格入场：全程 T 0→1（慢、连续、不停住），用 span 拉伸做波纹错开——
     // 这样 T=0 时全部是 0、T=1 时全部精确到 1（之前把 off 直接加到进度上，
