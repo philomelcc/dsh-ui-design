@@ -570,8 +570,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 78px; }
 .how-demo-text pre.term {
   position: relative;
   padding: 36px 14px 14px;
-  background: #0f1216;
-  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 92%, var(--text) 8%);
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow-x: auto;
 }
@@ -588,7 +588,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 78px; }
   font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
   color: color-mix(in srgb, var(--text) 45%, transparent);
 }
-.how-demo-text pre.term code { font-size: 12px; color: #d8dee9; }
+.how-demo-text pre.term code { font-size: 12px; color: var(--text); }
 
 /* 主页浏览区：「浏览全部」入口 */
 .browse-all {
