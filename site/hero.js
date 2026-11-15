@@ -165,6 +165,33 @@
     el.style.maskImage = grad;
   }
 
+  /** 按当前尺寸重画某个按钮的 SVG 描边。
+   *  文字变化（如「已复制安装命令」）或窗口缩放会让按钮变宽/变窄，不重画就会「底色和边框错位」。 */
+  function measureButton(bu) {
+    var w = bu.btn.offsetWidth;
+    var h = bu.btn.offsetHeight;
+    if (!w || !h) return;
+    bu.svg.setAttribute('width', w);
+    bu.svg.setAttribute('height', h);
+    bu.svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    bu.rect.setAttribute('x', 0.5);
+    bu.rect.setAttribute('y', 0.5);
+    bu.rect.setAttribute('width', Math.max(1, w - 1));
+    bu.rect.setAttribute('height', Math.max(1, h - 1));
+    var len = 0;
+    try {
+      len = bu.rect.getTotalLength();
+    } catch (err) {
+      len = (w + h) * 2;
+    }
+    bu.len = len;
+    bu.rect.style.strokeDasharray = len;
+    // 保持当前视觉状态：入场完成就是完整描边（实心按钮隐藏），否则按进度重算
+    var borderP = STATE.T >= 0.999 ? 1 : seg(STATE.T, 0.4 + bu.delay, 0.6 + bu.delay);
+    bu.rect.style.strokeDashoffset = (len * (1 - borderP)).toFixed(2);
+    bu.rect.style.opacity = bu.hideStroke && borderP >= 1 ? '0' : borderP <= 0.0005 ? '0' : '1';
+  }
+
   /** 按钮组：每个 .btn-wrap 一个 SVG 描边层；形态（data-fill）决定要不要填充。 */
   function setupButtons() {
     var wraps = board.querySelectorAll('.btn-wrap[data-btn]');
@@ -176,36 +203,28 @@
       var svg = wrap.querySelector('.btn-stroke');
       var label = wrap.querySelector('.btn-label');
       if (!btn || !rect || !svg) continue;
-      var w = btn.offsetWidth;
-      var h = btn.offsetHeight;
-      if (!w || !h) continue;
-      svg.setAttribute('width', w);
-      svg.setAttribute('height', h);
-      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-      rect.setAttribute('x', 0.5);
-      rect.setAttribute('y', 0.5);
-      rect.setAttribute('width', Math.max(1, w - 1));
-      rect.setAttribute('height', Math.max(1, h - 1));
-      var len = 0;
-      try {
-        len = rect.getTotalLength();
-      } catch (err) {
-        len = (w + h) * 2;
-      }
-      rect.style.strokeDasharray = len;
-      list.push({
+      let bu = {
+        wrap: wrap,
         btn: btn,
         rect: rect,
+        svg: svg,
         label: label,
-        len: len,
         delay: i * BTN_STEP,
         fill: wrap.getAttribute('data-fill') === 'true',
         hideStroke: wrap.getAttribute('data-hide-stroke') === 'true',
-      });
+        len: 0,
+      };
+      measureButton(bu);
+      if (typeof ResizeObserver === 'function') {
+        var ro = new ResizeObserver(function () {
+          measureButton(bu);
+        });
+        ro.observe(btn);
+      }
+      list.push(bu);
     }
     STATE.buttons = list;
   }
-
   /** 三个按钮的点击反馈：按下回弹 + 从点击点扩散的涟漪。 */
   function setupButtonFeedback() {
     var stage = board.querySelector('.hero-actions');
@@ -230,11 +249,12 @@
       var btn = e.target.closest('.btn-main, .btn-sub, .btn-ghost');
       if (!btn) return;
       spawnRipple(btn, e.clientX, e.clientY);
-      btn.classList.add('pressed');
+      var wrapEl = btn.closest('.btn-wrap');
+      if (wrapEl) wrapEl.classList.add('pressed');
     });
 
     function release() {
-      var list = stage.querySelectorAll('.pressed');
+      var list = stage.querySelectorAll('.btn-wrap.pressed');
       for (var i = 0; i < list.length; i += 1) list[i].classList.remove('pressed');
     }
     window.addEventListener('pointerup', release);

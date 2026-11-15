@@ -505,14 +505,16 @@ html { scroll-behavior: smooth; scroll-padding-top: 78px; }
 @keyframes ripple-out {
   to { transform: scale(1); opacity: 0; }
 }
-/* 悬停反馈：轻微上移 + 底色/亮度变化；按下时缩回 */
+/* 悬停反馈：轻微上移 + 底色/亮度变化 */
 .btn-main, .btn-sub, .btn-ghost {
   transition: transform 0.16s cubic-bezier(.34,1.56,.64,1), background-color 0.16s ease, filter 0.16s ease;
 }
 .btn-main:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .btn-sub:hover { background: color-mix(in srgb, var(--brand) 18%, transparent); transform: translateY(-1px); }
 .btn-ghost:hover { background: color-mix(in srgb, var(--brand) 8%, transparent); transform: translateY(-1px); }
-.btn-main.pressed, .btn-sub.pressed, .btn-ghost.pressed { transform: scale(0.96); }
+/* 按下：缩的是整组（按钮 + SVG 描边），否则底色会缩到边框里面错位 */
+.btn-wrap { transition: transform 0.16s cubic-bezier(.34,1.56,.64,1); }
+.btn-wrap.pressed { transform: scale(0.96); }
 @media (prefers-reduced-motion: reduce) {
   .click-ripple { animation: none; opacity: 0; }
   .btn-main, .btn-sub, .btn-ghost { transition: none; }
