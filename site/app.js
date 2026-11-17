@@ -710,6 +710,7 @@
     set('stat-tags', state.tags.length);
     set('stat-themes', themeCount);
     set('nav-count', state.designs.length + ' 项');
+    set('browse-count', state.designs.length);
     var updatedAt = state.index && state.index.updatedAt;
     if (updatedAt) {
       var d = new Date(updatedAt);

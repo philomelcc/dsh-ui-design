@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![CI](https://github.com/philomelcc/dsh-ui-design/actions/workflows/ci.yml/badge.svg)](https://github.com/philomelcc/dsh-ui-design/actions/workflows/ci.yml)
 
-给 DeepSeek Harness（dsh）用的前端设计知识库：**200 项可复用设计**，每项带 tag、可交互 demo、适用/不适用场景和一套实现提示词。装进 dsh 后，agent 做前端 UI 任务前会先按场景检索，拿 demo 和 prompt 当实现依据；也带一个不用装 dsh 的纯静态展示版。
+给 DeepSeek Harness（dsh）用的前端设计知识库：**200+ 项可复用设计**，每项带 tag、可交互 demo、适用/不适用场景和一套实现提示词。装进 dsh 后，agent 做前端 UI 任务前会先按场景检索，拿 demo 和 prompt 当实现依据；也带一个不用装 dsh 的纯静态展示版。
 
 ![展示版演示：搜索 → 打开设计 → 看 demo 和提示词](./docs/screenshots/demo.gif)
 
@@ -25,7 +25,7 @@ dsh plugin --profile web add @philomelcc/dsh-ui-design
 - 装了 `@philomelcc/dsh-workbench`：出现在工作台第二行的 tab「UI设计」；
 - 没装工作台：出现在第一行系统栏（`sidebar.panellist`），点图标打开页面。
 
-首次启动会把包内 `data/` 的 200 项设计写入 `~/.dsh/storages/ui-design/`，之后只读你的数据，不再覆盖。
+首次启动会把包内 `data/` 的 200+ 项设计写入 `~/.dsh/storages/ui-design/`，之后只读你的数据，不再覆盖。
 
 ## 界面
 
@@ -92,7 +92,7 @@ node site/serve.mjs # 直接起，默认 http://127.0.0.1:3090
 
 - 包内 `data/`：初始设计库（`index.json` 元数据 + `designs/<id>.json` 单条完整内容），`synonyms.json` 是检索同义词表，别删。
 - 运行时 `~/.dsh/storages/ui-design/`：同结构，你的增删改都在这里，升级不覆盖。
-- 200 项时索引约 180KB，可一次加载；单条 demo 按需读取（2000 项时约 1.8MB，仍然能一次进内存）。
+- 200+ 项时索引约 180KB，可一次加载；单条 demo 按需读取（2000 项时约 1.8MB，仍然能一次进内存）。
 
 ## 贡献
 
